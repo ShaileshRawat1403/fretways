@@ -1,0 +1,257 @@
+Tool: [NDK_HOME]/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-readelf
+Tool: [NDK_HOME]/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-nm
+Host nm and host strings are not used. They do not reliably read Android ELF files.
+
+NEEDED entries for every packaged .so
+
+==== lib/arm64-v8a/libandroidx.graphics.path.so ====
+  Class:                             ELF64
+  Type:                              DYN (Shared object file)
+  Machine:                           AArch64
+-- NEEDED --
+  0x0000000000000001 (NEEDED)       Shared library: [libm.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libdl.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libc.so]
+
+==== lib/arm64-v8a/libappmodules.so ====
+  Class:                             ELF64
+  Type:                              DYN (Shared object file)
+  Machine:                           AArch64
+-- NEEDED --
+  0x0000000000000001 (NEEDED)       Shared library: [libfbjni.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libjsi.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libreactnative.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libm.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libc++_shared.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libdl.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libc.so]
+
+==== lib/arm64-v8a/libbarhopper_v3.so ====
+  Class:                             ELF64
+  Type:                              DYN (Shared object file)
+  Machine:                           AArch64
+-- NEEDED --
+  0x0000000000000001 (NEEDED)       Shared library: [libjnigraphics.so]
+  0x0000000000000001 (NEEDED)       Shared library: [liblog.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libdl.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libm.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libc.so]
+
+==== lib/arm64-v8a/libc++_shared.so ====
+  Class:                             ELF64
+  Type:                              DYN (Shared object file)
+  Machine:                           AArch64
+-- NEEDED --
+  0x0000000000000001 (NEEDED)          Shared library: [libc.so]
+  0x0000000000000001 (NEEDED)          Shared library: [libm.so]
+  0x0000000000000001 (NEEDED)          Shared library: [libdl.so]
+
+==== lib/arm64-v8a/libexpo-modules-core.so ====
+  Class:                             ELF64
+  Type:                              DYN (Shared object file)
+  Machine:                           AArch64
+-- NEEDED --
+  0x0000000000000001 (NEEDED)       Shared library: [liblog.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libandroid.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libexpo-modules-jsi.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libjsi.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libfbjni.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libreactnative.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libm.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libc++_shared.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libdl.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libc.so]
+
+==== lib/arm64-v8a/libexpo-modules-jsi.so ====
+  Class:                             ELF64
+  Type:                              DYN (Shared object file)
+  Machine:                           AArch64
+-- NEEDED --
+  0x0000000000000001 (NEEDED)       Shared library: [libjsi.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libfbjni.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libreactnative.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libm.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libc++_shared.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libdl.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libc.so]
+
+==== lib/arm64-v8a/libexpo-modules-v2.so ====
+  Class:                             ELF64
+  Type:                              DYN (Shared object file)
+  Machine:                           AArch64
+-- NEEDED --
+  0x0000000000000001 (NEEDED)         Shared library: [liblog.so]
+  0x0000000000000001 (NEEDED)         Shared library: [libjsi.so]
+  0x0000000000000001 (NEEDED)         Shared library: [libm.so]
+  0x0000000000000001 (NEEDED)         Shared library: [libc++_shared.so]
+  0x0000000000000001 (NEEDED)         Shared library: [libdl.so]
+  0x0000000000000001 (NEEDED)         Shared library: [libc.so]
+
+==== lib/arm64-v8a/libfbjni.so ====
+  Class:                             ELF64
+  Type:                              DYN (Shared object file)
+  Machine:                           AArch64
+-- NEEDED --
+  0x0000000000000001 (NEEDED)       Shared library: [libandroid.so]
+  0x0000000000000001 (NEEDED)       Shared library: [liblog.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libm.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libc++_shared.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libdl.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libc.so]
+
+==== lib/arm64-v8a/libgifimage.so ====
+  Class:                             ELF64
+  Type:                              DYN (Shared object file)
+  Machine:                           AArch64
+-- NEEDED --
+  0x0000000000000001 (NEEDED)       Shared library: [libjnigraphics.so]
+  0x0000000000000001 (NEEDED)       Shared library: [liblog.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libdl.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libandroid.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libc.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libm.so]
+
+==== lib/arm64-v8a/libhermestooling.so ====
+  Class:                             ELF64
+  Type:                              DYN (Shared object file)
+  Machine:                           AArch64
+-- NEEDED --
+  0x0000000000000001 (NEEDED)       Shared library: [libreactnative.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libjsi.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libhermesvm.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libandroid.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libfbjni.so]
+  0x0000000000000001 (NEEDED)       Shared library: [liblog.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libm.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libc++_shared.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libdl.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libc.so]
+
+==== lib/arm64-v8a/libhermesvm.so ====
+  Class:                             ELF64
+  Type:                              DYN (Shared object file)
+  Machine:                           AArch64
+-- NEEDED --
+  0x0000000000000001 (NEEDED)       Shared library: [libjsi.so]
+  0x0000000000000001 (NEEDED)       Shared library: [liblog.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libfbjni.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libm.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libc++_shared.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libdl.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libc.so]
+
+==== lib/arm64-v8a/libimagepipeline.so ====
+  Class:                             ELF64
+  Type:                              DYN (Shared object file)
+  Machine:                           AArch64
+-- NEEDED --
+  0x0000000000000001 (NEEDED)       Shared library: [liblog.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libjnigraphics.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libc.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libm.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libdl.so]
+
+==== lib/arm64-v8a/libjsi.so ====
+  Class:                             ELF64
+  Type:                              DYN (Shared object file)
+  Machine:                           AArch64
+-- NEEDED --
+  0x0000000000000001 (NEEDED)       Shared library: [libm.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libc++_shared.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libdl.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libc.so]
+
+==== lib/arm64-v8a/libnative-filters.so ====
+  Class:                             ELF64
+  Type:                              DYN (Shared object file)
+  Machine:                           AArch64
+-- NEEDED --
+  0x0000000000000001 (NEEDED)       Shared library: [liblog.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libjnigraphics.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libc.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libm.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libdl.so]
+
+==== lib/arm64-v8a/libnative-imagetranscoder.so ====
+  Class:                             ELF64
+  Type:                              DYN (Shared object file)
+  Machine:                           AArch64
+-- NEEDED --
+  0x0000000000000001 (NEEDED)       Shared library: [liblog.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libc.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libm.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libdl.so]
+
+==== lib/arm64-v8a/liboboe.so ====
+  Class:                             ELF64
+  Type:                              DYN (Shared object file)
+  Machine:                           AArch64
+-- NEEDED --
+  0x0000000000000001 (NEEDED)       Shared library: [liblog.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libOpenSLES.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libm.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libc++_shared.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libdl.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libc.so]
+
+==== lib/arm64-v8a/libreact-native-audio-api.so ====
+  Class:                             ELF64
+  Type:                              DYN (Shared object file)
+  Machine:                           AArch64
+-- NEEDED --
+  0x0000000000000001 (NEEDED)       Shared library: [libjsi.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libfbjni.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libandroid.so]
+  0x0000000000000001 (NEEDED)       Shared library: [liblog.so]
+  0x0000000000000001 (NEEDED)       Shared library: [liboboe.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libreactnative.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libz.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libm.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libc++_shared.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libdl.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libc.so]
+
+==== lib/arm64-v8a/libreactnative.so ====
+  Class:                             ELF64
+  Type:                              DYN (Shared object file)
+  Machine:                           AArch64
+-- NEEDED --
+  0x0000000000000001 (NEEDED)       Shared library: [libandroid.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libfbjni.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libjsi.so]
+  0x0000000000000001 (NEEDED)       Shared library: [liblog.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libm.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libc++_shared.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libdl.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libc.so]
+
+==== lib/arm64-v8a/libstatic-webp.so ====
+  Class:                             ELF64
+  Type:                              DYN (Shared object file)
+  Machine:                           AArch64
+-- NEEDED --
+  0x0000000000000001 (NEEDED)       Shared library: [liblog.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libjnigraphics.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libz.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libdl.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libc.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libm.so]
+
+==== lib/arm64-v8a/libzstd-kmp.so ====
+  Class:                             ELF64
+  Type:                              DYN (Shared object file)
+  Machine:                           AArch64
+-- NEEDED --
+  0x0000000000000001 (NEEDED)       Shared library: [libm.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libdl.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libc.so]
+
+==== symbol scan lib/arm64-v8a/libreact-native-audio-api.so ====
+Defined symbols matching FFmpeg, Opus, Vorbis, Ogg, or OpenSSL.
+A 'U' symbol is an external reference, not proof of static inclusion.
+
+(no defined symbols matched)
+
+Undefined references with the same names, if any:
+(no undefined symbols matched)
+

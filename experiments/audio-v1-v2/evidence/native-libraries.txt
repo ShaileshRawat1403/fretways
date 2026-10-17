@@ -1,0 +1,24 @@
+Every packaged native library in android/app/build/outputs/apk/debug/app-debug.apk
+A shared library that is absent from this list is not packaged.
+Absence here does not prove that a static library was left out.
+
+   10096  lib/arm64-v8a/libandroidx.graphics.path.so
+  238600  lib/arm64-v8a/libappmodules.so
+ 4946720  lib/arm64-v8a/libbarhopper_v3.so
+ 1292904  lib/arm64-v8a/libc++_shared.so
+ 1845560  lib/arm64-v8a/libexpo-modules-core.so
+   94432  lib/arm64-v8a/libexpo-modules-jsi.so
+ 1318144  lib/arm64-v8a/libexpo-modules-v2.so
+  177000  lib/arm64-v8a/libfbjni.so
+  319088  lib/arm64-v8a/libgifimage.so
+  566576  lib/arm64-v8a/libhermestooling.so
+ 4019784  lib/arm64-v8a/libhermesvm.so
+    8760  lib/arm64-v8a/libimagepipeline.so
+  941304  lib/arm64-v8a/libjsi.so
+  277744  lib/arm64-v8a/libnative-filters.so
+  585376  lib/arm64-v8a/libnative-imagetranscoder.so
+  296080  lib/arm64-v8a/liboboe.so
+ 6253552  lib/arm64-v8a/libreact-native-audio-api.so
+24063504  lib/arm64-v8a/libreactnative.so
+  502112  lib/arm64-v8a/libstatic-webp.so
+  731872  lib/arm64-v8a/libzstd-kmp.so

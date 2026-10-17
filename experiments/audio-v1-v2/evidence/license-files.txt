@@ -1,0 +1,2 @@
+License files whose names match the optional native libraries:
+(none found under node_modules/react-native-audio-api)

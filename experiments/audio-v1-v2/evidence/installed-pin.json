@@ -1,0 +1,8 @@
+{
+  "name": "react-native-audio-api",
+  "version": "0.13.6",
+  "licenseField": "MIT",
+  "disableFFmpegDefaultFalse": true,
+  "disableStaticExternalLibsDefaultFalse": true,
+  "m4aRoutedToFfmpegInHeader": true
+}

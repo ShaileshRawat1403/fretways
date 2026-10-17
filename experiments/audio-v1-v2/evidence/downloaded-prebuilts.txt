@@ -1,0 +1,3 @@
+Prebuilt files downloaded into the installed package.
+These directories are empty in the npm tarball and are filled at build time.
+(those directories are absent or empty)

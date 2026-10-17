@@ -1,0 +1,2 @@
+79:disableAudioapiStaticExternalLibs=true
+80:disableAudioapiFFmpeg=true

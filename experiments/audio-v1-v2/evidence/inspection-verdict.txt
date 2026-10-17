@@ -1,0 +1,11 @@
+shared-library list: CONCLUSIVE
+reason: native-libraries.txt is the complete set of .so files extracted from the APK.
+
+static-link check: CONCLUSIVE
+reason: llvm-nm found no defined FFmpeg, Opus, Ogg, Vorbis, or OpenSSL symbols in libreact-native-audio-api.so, and those libraries are not packaged as their own .so files.
+
+license-file check: INCONCLUSIVE
+reason: The binary scan completed, but no FFmpeg, OpenSSL, Opus, Ogg, or Vorbis license text was found in the installed package. Presence or absence of a .so is not itself the license text.
+
+An INCONCLUSIVE line is not a pass and is not evidence that a library is absent.
+This script does not close V1 or V2.

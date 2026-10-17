@@ -1,0 +1,96 @@
+{
+  "label": "V1_RESULT",
+  "note": "Device measurement only. Not a closed validation.",
+  "ffmpegEnabled": false,
+  "device": {
+    "os": "android",
+    "version": "34",
+    "name": "I2202"
+  },
+  "fixtureIntent": {
+    "note": "Locally generated 440 Hz sine. Not taken from a recording.",
+    "sampleRate": 44100,
+    "durationSeconds": 1,
+    "frequencyHz": 440,
+    "amplitude": 0.5,
+    "channels": 1,
+    "files": [
+      "tone.wav",
+      "tone.mp3",
+      "tone.m4a"
+    ],
+    "compareTolerances": {
+      "durationSeconds": 0.08,
+      "estimatedHz": 20,
+      "minimumPeak": 0.05
+    }
+  },
+  "rows": [
+    {
+      "format": "wav",
+      "route": "file",
+      "ok": true,
+      "duration": 1,
+      "sampleRate": 44100,
+      "channels": 1,
+      "frames": 44100,
+      "peak": 0.5,
+      "rms": 0.3535,
+      "estimatedHz": 440,
+      "fileBytes": 88244
+    },
+    {
+      "format": "wav",
+      "route": "memory",
+      "ok": true,
+      "duration": 1,
+      "sampleRate": 44100,
+      "channels": 1,
+      "frames": 44100,
+      "peak": 0.5,
+      "rms": 0.3535,
+      "estimatedHz": 440,
+      "fileBytes": 88244
+    },
+    {
+      "format": "mp3",
+      "route": "file",
+      "ok": true,
+      "duration": 1.0710204081632653,
+      "sampleRate": 44100,
+      "channels": 1,
+      "frames": 47232,
+      "peak": 0.5098,
+      "rms": 0.3417,
+      "estimatedHz": 444,
+      "fileBytes": 5117
+    },
+    {
+      "format": "mp3",
+      "route": "memory",
+      "ok": true,
+      "duration": 1.0710204081632653,
+      "sampleRate": 44100,
+      "channels": 1,
+      "frames": 47232,
+      "peak": 0.5098,
+      "rms": 0.3417,
+      "estimatedHz": 444,
+      "fileBytes": 5117
+    },
+    {
+      "format": "m4a",
+      "route": "file",
+      "ok": false,
+      "error": "FFmpeg is disabled, cannot decode with file path",
+      "fileBytes": 13502
+    },
+    {
+      "format": "m4a",
+      "route": "memory",
+      "ok": false,
+      "error": "FFmpeg is disabled, cannot decode memory block",
+      "fileBytes": 13502
+    }
+  ]
+}
