@@ -4,7 +4,7 @@ This directory contains the sanitized evidence and validation artifacts for the 
 
 ## Evidence Inventory
 
-- `VALIDATION_REPORT.md`: Comprehensive validation report detailing build verification, numerical device measurements, audio driver telemetry, pending human audition checklist, and licensing boundary.
+- `VALIDATION_REPORT.md`: Comprehensive validation report detailing build verification, numerical device measurements, audio driver telemetry, human listening results, and licensing boundary.
 - `v3-audition-results.json`: Full 23-check numerical measurement record produced by the physical iQOO Neo 6 device (`com.validation.v3audition`) on Android 14.
 - `device.txt`: Sanitized ADB target device specifications (iQOO Neo 6 / I2202, Android 14, API Level 34, `arm64-v8a`).
 - `gradle-flags.txt`: Verified Android build properties enforcing decoder disable flags (`disableAudioapiStaticExternalLibs=true`, `disableAudioapiFFmpeg=true`).

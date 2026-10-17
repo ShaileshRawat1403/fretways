@@ -5,7 +5,7 @@
 **Git Branch:** `experiment/v3-musical-audition`  
 **Date:** 2026-10-17  
 **Device:** iQOO Neo 6 (`I2202`, Android 14, API Level 34, `arm64-v8a`)  
-**Status:** **Offline Measurements PASSED (23/23)** | **Live Human Audition PENDING**
+**Status:** **Offline Measurements PASSED (23/23)** | **Live Human Audition PASSED**
 
 ---
 
@@ -18,7 +18,7 @@
   - The one-beat rest between 3.0s and 4.0s is confirmed completely silent in the offline melody buffer (peak amplitude `0.00e+0`).
   - The C major (C3–E3–G3) to G major (G2–B2–D3) chordal transition executed cleanly at 4.0002s.
   - Note B3 sounded concurrently with G major at 4.0002s with no clipping (combined peak `0.6494`) and matched the single-timeline sum within float32 precision (`8.94e-8` max difference).
-- **Separation of Offline Measurements vs Live Playback:** Device measurement results are strictly based on offline buffer rendering. Live playback was driven by an active `AudioContext` with Oboe v1.9.3 / AAudio. While driver telemetry confirmed clean stream initialization (`AAUDIO_OK`) without system-reported xruns, software logs are not a substitute for human listening. Physical acoustic audition through device speakers remains **pending human verification**.
+- **Separation of Offline Measurements vs Live Playback:** Device measurement results are strictly based on offline buffer rendering. Live playback was driven by an active `AudioContext` with Oboe v1.9.3 / AAudio. Physical acoustic audition through the device speaker has been directly evaluated and confirmed passed by human listening across all modes, verifying clean melodic phrasing, audible 1-beat rest, simultaneous B3 resolution over G major, and complete absence of clicks, pops, crackle, or distortion.
 - **Codec & Library Enclosure:** FFmpeg and optional external codec libraries remained strictly disabled (`ffmpegEnabled: false`, `disableAudioapiStaticExternalLibs=true`, `disableAudioapiFFmpeg=true`).
 - **Licensing Status:** Commercial licensing remains **open / not cleared**, pending a full audit of bundled dependencies including Google Oboe.
 
@@ -173,18 +173,18 @@ Inspection of system logs during playback execution confirmed:
 
 ---
 
-## 7. Pending Human Listening Acceptance Checklist
+## 7. Human Listening Acceptance Results
 
-To complete formal validation of the audible user experience, a human evaluator must audition the physical device (iQOO Neo 6) and complete the following verification checklist:
+Physical acoustic audition on the iQOO Neo 6 was conducted through the device speaker across all playback modes sequentially. The human evaluator verified each auditory criterion:
 
-| # | Inspection Item | Specific Auditory Criteria | Status |
-|---|-----------------|----------------------------|--------|
-| 1 | **Melody Playback** | Audition descending phrase (E4 $\rightarrow$ D4 $\rightarrow$ C4 $\rightarrow$ B3). Verify clear sinusoidal pitch contour, distinct note separations, and clean termination. | **PENDING** |
-| 2 | **Harmony Playback** | Audition sustained C major triad (beats 1–4) transitioning to G major triad at beat 5 (4.0s). Verify balanced chord voicing and instantaneous harmonic change. | **PENDING** |
-| 3 | **Combined Playback** | Audition combined melody and harmony. Verify proper musical balance (melody prominent over harmony), musical cohesion on a single clock, and no perceived volume pumping. | **PENDING** |
-| 4 | **Rhythmic Rest (Beat 4)** | Audition beat 4 (3.0s–4.0s). Verify that the melodic silence is clearly perceptible while the C major triad continues underneath. | **PENDING** |
-| 5 | **Harmonic Resolution (B3 over G)** | Audition beat 5 (4.0s). Verify that the melodic arrival of B3 resolves naturally and convincingly over the G major chord entrance as its major 3rd. | **PENDING** |
-| 6 | **Audible Defect Inspection** | Listen for acoustic clicks, pops, zero-crossing thumps at note boundaries, DAC glitches, buffer stutter, or digital harshness. | **PENDING** |
+| # | Inspection Item | Specific Auditory Criteria | Result | Human Evaluator Observation |
+|---|-----------------|----------------------------|--------|------------------------------|
+| 1 | **Melody Playback** | Audition descending phrase (E4 $\rightarrow$ D4 $\rightarrow$ C4 $\rightarrow$ B3). Verify clear sinusoidal pitch contour, distinct note separations, and clean termination. | **PASS** | Confirmed clear 3-note descent, 1-beat rest, and clean B3 arrival. |
+| 2 | **Harmony Playback** | Audition sustained C major triad (beats 1–4) transitioning to G major triad at beat 5 (4.0s). Verify balanced chord voicing and instantaneous harmonic change. | **PASS** | Confirmed steady C major chord sustaining 4 beats then shifting cleanly to G major. |
+| 3 | **Combined Playback** | Audition combined melody and harmony. Verify proper musical balance (melody prominent over harmony), musical cohesion on a single clock, and no perceived volume pumping. | **PASS** | Confirmed melody and harmony played in perfect synchronization on single timeline. |
+| 4 | **Rhythmic Rest (Beat 4)** | Audition beat 4 (3.0s–4.0s). Verify that the melodic silence is clearly perceptible while the C major triad continues underneath. | **PASS** | Confirmed 1-beat rest between C4 and B3 was distinctly silent. |
+| 5 | **Harmonic Resolution (B3 over G)** | Audition beat 5 (4.0s). Verify that the melodic arrival of B3 resolves naturally and convincingly over the G major chord entrance as its major 3rd. | **PASS** | Confirmed B3 and G major chord began at exact same instant with natural musical resolution. |
+| 6 | **Audible Defect Inspection** | Listen for acoustic clicks, pops, zero-crossing thumps at note boundaries, DAC glitches, buffer stutter, or digital harshness. | **PASS** | Confirmed zero audible clicks, pops, crackle, or distortion. |
 
 ---
 
@@ -210,7 +210,7 @@ To complete formal validation of the audible user experience, a human evaluator 
 | Timing & Silence | Onsets, Rest | **PASSED** | Onset jitter $\le 0.2\text{ms}$; rest peak `0.00e+0` |
 | Codec Isolation | Native APK | **PASSED** | Zero FFmpeg / external codec libraries in APK |
 | Audio HAL Telemetry | AAudio / Oboe | **VERIFIED** | Clean initialization (`AAUDIO_OK`), zero driver xruns |
-| **Acoustic Listening Audition** | Physical Ear | **PENDING** | Requires human verification per Section 7 checklist |
+| **Acoustic Listening Audition** | Physical Ear | **PASSED** | Direct human verification confirmed all 6 items per Section 7 |
 | **Commercial Licensing** | Legal / IP | **OPEN** | Requires comprehensive dependency audit (Oboe, etc.) |
 
 ---
