@@ -5,22 +5,22 @@
 **Git Branch:** `experiment/v3-musical-audition`  
 **Date:** 2026-10-17  
 **Device:** iQOO Neo 6 (`I2202`, Android 14, API Level 34, `arm64-v8a`)  
-**Verdict:** **PASSED**
+**Status:** **Offline Measurements PASSED (23/23)** | **Live Human Audition PENDING**
 
 ---
 
 ## 1. Executive Summary
 
-- **V3 Musical Audition Verdict:** **PASSED** on the physical iQOO Neo 6 device.
-- **Offline Audio Context:** Successfully executed natively on Android 14 via `react-native-audio-api` (`measurementSource: "offline-audio-context"`, `offlineError: null`). The deterministic PCM fallback was **not** required.
-- **Musical Timeline & Pitch Accuracy:** All 23 quantitative checks passed on the physical device. Measured pitches for E4, D4, C4, and B3 matched equal-temperament targets within the discrete Fourier analysis bin resolution. Onset timing aligned precisely at 0.0002s, 1.0002s, 2.0002s, and 4.0002s. Durations held consistently at 0.9997s–0.9998s.
-- **Silence & Harmonic Resolution:**
-  - The one-beat rest between 3.0s and 4.0s is completely silent (measured melody peak amplitude `0.00e+0`).
-  - The harmonic transition from C major (C3–E3–G3) to G major (G2–B2–D3) executed cleanly at 4.0002s.
-  - Melodic note B3 resolved simultaneously over the G major harmony with no phase artifacts, unwanted overlap, or clipping (peak amplitude `0.6494`).
-- **Live Audition & Performance:** Subjective listening across all three playback modes (Melody alone, Harmony alone, Combined) confirmed accurate musical phrasing, natural harmonic resolution, an audible one-beat rest, and clean audio delivery. Low-latency playback operated via Oboe v1.9.3 on the AAudio backend without clicks, distortion, buffer underruns, or dropouts.
-- **Codec & Library Enclosure:** FFmpeg and optional external codec libraries remained disabled (`ffmpegEnabled: false`, `disableAudioapiStaticExternalLibs=true`, `disableAudioapiFFmpeg=true`).
-- **Licensing Status:** Commercial licensing remains **open / not fully cleared**, pending comprehensive native dependency audit (including Oboe).
+- **Android OfflineAudioContext Evaluation:** **PASSED (23/23)** on the physical iQOO Neo 6 device. The harness executed natively through Android's C++ Web Audio graph (`measurementSource: "offline-audio-context"`, `offlineError: null`). The deterministic PCM fallback was **not** triggered.
+- **Frequency Measurement Methodology:** Melodic frequencies were evaluated using **zero-crossing rate estimation** over a 0.90-second steady-state window. All four melodic notes (E4, D4, C4, B3) matched their equal-temperament targets within the discrete quantization resolution of the zero-crossing counter ($\Delta f \approx 0.56\text{ Hz}$).
+- **Offline Timing & Harmonic Resolution:**
+  - Melodic onsets aligned within 0.2ms of nominal beats (0.0002s, 1.0002s, 2.0002s, 4.0002s); durations held steady at 0.9997s–0.9998s.
+  - The one-beat rest between 3.0s and 4.0s is confirmed completely silent in the offline melody buffer (peak amplitude `0.00e+0`).
+  - The C major (C3–E3–G3) to G major (G2–B2–D3) chordal transition executed cleanly at 4.0002s.
+  - Note B3 sounded concurrently with G major at 4.0002s with no clipping (combined peak `0.6494`) and matched the single-timeline sum within float32 precision (`8.94e-8` max difference).
+- **Separation of Offline Measurements vs Live Playback:** Device measurement results are strictly based on offline buffer rendering. Live playback was driven by an active `AudioContext` with Oboe v1.9.3 / AAudio. While driver telemetry confirmed clean stream initialization (`AAUDIO_OK`) without system-reported xruns, software logs are not a substitute for human listening. Physical acoustic audition through device speakers remains **pending human verification**.
+- **Codec & Library Enclosure:** FFmpeg and optional external codec libraries remained strictly disabled (`ffmpegEnabled: false`, `disableAudioapiStaticExternalLibs=true`, `disableAudioapiFFmpeg=true`).
+- **Licensing Status:** Commercial licensing remains **open / not cleared**, pending a full audit of bundled dependencies including Google Oboe.
 
 ---
 
@@ -40,7 +40,7 @@
 - **Model:** iQOO Neo 6 (`I2202`, `I2202i`)
 - **OS Version:** Android 14 (API Level 34)
 - **Primary ABI:** `arm64-v8a`
-- **Audio Output Subsystem:** Oboe v1.9.3 over AAudio (low-latency float buffer, hardware rate 48000 Hz, 2 channels, callback burst size 128 frames)
+- **Audio Output Driver:** Oboe v1.9.3 over AAudio (`AudioFormat::Float`, native rate 48000 Hz, 2 channels, callback burst size 128 frames)
 - **Connection:** USB (Debugging Authorized)
 
 ---
@@ -56,8 +56,8 @@ disableAudioapiFFmpeg=true
 
 ### Pre-Build & Build Steps
 1. **Pre-Build Verification:** Executed `npm run check` in `experiments/audio-v3`. All 23 deterministic PCM checks passed in the Node environment.
-2. **Flag Assertion:** Executed `npm run assert-flags` (`scripts/assert-flags.sh`). Confirmed both `disableAudioapiStaticExternalLibs=true` and `disableAudioapiFFmpeg=true` were set.
-3. **Android Compilation:** Built debug APK via `npm run android` (`expo run:android --device`). Gradle compilation succeeded in 2m 16s across 339 tasks.
+2. **Flag Assertion:** Executed `npm run assert-flags` (`scripts/assert-flags.sh`). Confirmed both `disableAudioapiStaticExternalLibs=true` and `disableAudioapiFFmpeg=true` were present.
+3. **Android Compilation:** Built debug APK via `npm run android` (`expo run:android --device`). Gradle compilation completed cleanly in 2m 16s across 339 tasks.
 4. **Packaged Native Libraries:** Verified native libraries packaged in `app-debug.apk` under `lib/arm64-v8a/`:
    - `libreact-native-audio-api.so` (6,253,552 bytes)
    - `liboboe.so` (296,080 bytes)
@@ -87,9 +87,9 @@ Resolution:                                                 B3 resolves as 3rd o
 
 ---
 
-## 5. Quantitative Device Measurements (`OfflineAudioContext`)
+## 5. Confirmed Offline Device Measurements (`OfflineAudioContext`)
 
-Measurements were executed on the iQOO Neo 6 using the native `OfflineAudioContext` (sample rate 44,100 Hz, 5.0 seconds duration, 220,500 samples rendered).
+Measurements were executed on the iQOO Neo 6 using the native `OfflineAudioContext` (sample rate 44,100 Hz, 5.0 seconds duration, 220,500 samples rendered into an `AudioBuffer`).
 
 ```json
 {
@@ -130,53 +130,65 @@ Measurements were executed on the iQOO Neo 6 using the native `OfflineAudioConte
 | 22 | G starts at 4.0 seconds | Energy shift at 4.0s | G2 during C `7.610e+2`, during G `3.955e+6` | **PASS** |
 | 23 | B3 resolves with G | B3 at 4.0s >> Pre-4.0s | Pre-4.0s `3.493e+4`, over G `4.822e+7` | **PASS** |
 
-### Analysis of Offline Audio Context vs Deterministic PCM
-- **Measurement Source:** The device report explicitly confirmed `measurementSource: "offline-audio-context"`. The fallback path was never triggered.
-- **Floating-Point Precision:** The maximum sample-level difference between the combined render and the discrete sum of melody and harmony was `8.94e-8` on the device `OfflineAudioContext`, compared to `7.45e-8` in the local Node PCM test. Both values reside within IEEE 754 single-precision float32 rounding epsilon ($\approx 1.19 \times 10^{-7}$), proving that `react-native-audio-api` performs exact linear mixing without unquantized non-linearities or sample misalignment.
-- **Pitch Bin Resolution:** Frequency measurements use discrete Fourier bins over finite sample windows ($N = 12000$ to $18000$ samples), yielding a discrete bin spacing of $\Delta f \approx 0.33 \text{ Hz}$. The measured values (330.00 Hz vs 329.63 Hz, 293.33 Hz vs 293.66 Hz, 261.67 Hz vs 261.63 Hz, 247.22 Hz vs 246.94 Hz) are within one bin width of the exact frequencies.
-- **Timing Alignment:** The measured onsets are delayed by approximately 10 samples ($10 / 44100 \approx 0.00022\text{ s}$), representing the standard sub-millisecond envelope ramp applied to avoid hard zero-crossing discontinuities.
+### Detailed Analysis of Offline Measurements
+
+#### Zero-Crossing Frequency Estimation
+The pitch verification algorithm (`estimateHz` in `src/audition.mjs`) counts positive and negative zero crossings over a 0.90-second steady-state window $[start + 0.05\text{s}, end - 0.05\text{s}]$:
+
+$$\text{Frequency (Hz)} = \frac{\text{crossings}}{2 \times \text{duration}} = \frac{\text{crossings}}{2 \times 0.90\text{ s}} = \frac{\text{crossings}}{1.8} = \text{crossings} \times \frac{5}{9}$$
+
+Because the count of zero crossings is an integer, the frequency estimation is quantized in steps of $\Delta f = 1 / 1.8 \approx 0.5556\text{ Hz}$:
+- **E4 (Target: 329.63 Hz):** 594 crossings $\rightarrow 594 / 1.8 = \mathbf{330.00\text{ Hz}}$ ($\Delta = +0.37\text{ Hz}$)
+- **D4 (Target: 293.66 Hz):** 528 crossings $\rightarrow 528 / 1.8 = \mathbf{293.33\text{ Hz}}$ ($\Delta = -0.33\text{ Hz}$)
+- **C4 (Target: 261.63 Hz):** 471 crossings $\rightarrow 471 / 1.8 = \mathbf{261.67\text{ Hz}}$ ($\Delta = +0.04\text{ Hz}$)
+- **B3 (Target: 246.94 Hz):** 445 crossings $\rightarrow 445 / 1.8 = \mathbf{247.22\text{ Hz}}$ ($\Delta = +0.28\text{ Hz}$)
+
+All four notes fall well within the $\pm 1.0\text{ Hz}$ test tolerance and match the expected integer-quantized values for clean sinusoidal waveforms. (Chord presence was evaluated separately using Goertzel single-bin discrete Fourier filter power).
+
+#### Floating-Point Precision & Timeline Mixing
+- The maximum sample difference between the offline combined render and the discrete sum of offline melody and harmony buffers was `8.94e-8` on the device (compared to `7.45e-8` in the local Node PCM test).
+- Both values reside within IEEE 754 single-precision float32 rounding epsilon ($\approx 1.19 \times 10^{-7}$), confirming that `react-native-audio-api` performs exact linear mixing without non-linear artifacts or timing jitter in its offline audio graph.
+
+#### Timing Alignment
+- Measured onsets show an offset of approximately 10 samples ($10 / 44100 \approx 0.00022\text{ s}$), reflecting the brief initial envelope ramp applied by the synthesizer node to eliminate DC click transients.
 
 ---
 
-## 6. Live Audible Playback & Subjective Listening Evaluation
+## 6. Live Playback Driver & System Graph Telemetry
 
-Auditioning of all three playback modes was conducted on the iQOO Neo 6 using live `AudioContext` with start times scheduled at `ctx.currentTime + 0.1s`:
+The harness provides interactive playback buttons for three modes (Melody, Harmony, Combined) utilizing a live `AudioContext`. Start times were scheduled at `ctx.currentTime + 0.1s`.
 
-### Mode 1: Melody Alone
-- **Musical Impression:** Clean descending melodic contour: E4 (1s) $\rightarrow$ D4 (1s) $\rightarrow$ C4 (1s) $\rightarrow$ Rest (1s) $\rightarrow$ B3 (1s).
-- **Acoustic Observations:**
-  - Clear, pure sinusoidal tone without harmonic distortion or aliasing.
-  - Beat 4 rest (between C4 and B3) was distinctly and completely silent.
-  - Note transitions were clean without perceptible clicking or popping.
-  - Final B3 note cleanly terminated at 5.0 seconds.
+### Driver Telemetry (Logcat & Audio HAL)
+Inspection of system logs during playback execution confirmed:
+- **Audio Output Subsystem:** Google Oboe v1.9.3 initialized over the Android AAudio service.
+- **Stream Parameters:** `AudioFormat::Float`, 2 channels, 44.1 kHz internal graph sample rate converted to 48.0 kHz native DAC rate by the hardware flowgraph.
+- **Buffer & Callback:** Callback burst size configured to 128 frames.
+- **Stream Status:** Logcat recorded `StreamAAudio::open() AAUDIO_OK`. The graph started and stopped cleanly without throwing native exceptions.
+- **System Buffer Health:** The AAudio subsystem reported zero buffer underruns, zero xruns, and zero dropped frames during test triggers.
 
-### Mode 2: Harmony Alone
-- **Musical Impression:** Steady C major root-position triad (C3–E3–G3) sustaining across beats 1 through 4 (0.0s–4.0s), followed by an immediate, clean harmonic shift to G major (G2–B2–D3) at beat 5 (4.0s–5.0s).
-- **Acoustic Observations:**
-  - Balanced chordal blend with clear voice separation across low and mid registers.
-  - Instantaneous chord transition at 4.0s without voice leading overlap or transient thumps.
-
-### Mode 3: Combined (Hear and Compare)
-- **Musical Impression:** Melody and harmony sounded together on a single unified timeline.
-- **Acoustic Observations:**
-  - Melodic notes E4, D4, and C4 sat cleanly above the C major triad bed.
-  - During the beat 4 rest (3.0s–4.0s), the sustained C major harmony was clearly audible on its own, establishing the musical expectation.
-  - At 4.0s, the entrance of G major occurred simultaneously with the melodic arrival of B3.
-  - The leading tone B3 resolved into the G major chord (acting as its major 3rd) naturally, convincingly, and in perfect rhythmic lockstep.
-  - No clipping, harsh intermodulation distortion, or volume pumping was detected (headroom maintained at peak 0.6494).
-
-### Hardware Audio Driver Performance
-- Device logcat confirmed that `AudioContext` instantiated an Oboe stream utilizing the native Android AAudio service:
-  - Format: `AudioFormat::Float`
-  - Direction: Output
-  - Sample Rate: Internal graph at 44,100 Hz, converted by hardware flowgraph to native device rate 48,000 Hz.
-  - Callback Size: 128 frames (low-latency burst).
-  - Stream Status: `AAUDIO_OK`.
-  - Zero buffer underruns, zero xruns, and zero dropped frames were observed across repeated audition cycles.
+### Crucial Qualification on Live Playback
+- **Distinction from Acoustic Verification:** Executing playback via ADB UI clicks and observing clean driver logs demonstrates that the software pipeline, JSI bindings, C++ graph manager, and Android AAudio driver operated without system-level fault.
+- **Limit of Telemetry:** Logcat status codes and ADB automation cannot measure the analog acoustic output emitted by the physical speaker or headphone jack.
+- **No Inferred Hearing:** The telemetry does not prove the absence of audible acoustic distortion, analog clipping, acoustic speaker resonance, or perceptible playback latency. Those characteristics require explicit human listening evaluation.
 
 ---
 
-## 7. Licensing & Native Dependency Boundaries
+## 7. Pending Human Listening Acceptance Checklist
+
+To complete formal validation of the audible user experience, a human evaluator must audition the physical device (iQOO Neo 6) and complete the following verification checklist:
+
+| # | Inspection Item | Specific Auditory Criteria | Status |
+|---|-----------------|----------------------------|--------|
+| 1 | **Melody Playback** | Audition descending phrase (E4 $\rightarrow$ D4 $\rightarrow$ C4 $\rightarrow$ B3). Verify clear sinusoidal pitch contour, distinct note separations, and clean termination. | **PENDING** |
+| 2 | **Harmony Playback** | Audition sustained C major triad (beats 1–4) transitioning to G major triad at beat 5 (4.0s). Verify balanced chord voicing and instantaneous harmonic change. | **PENDING** |
+| 3 | **Combined Playback** | Audition combined melody and harmony. Verify proper musical balance (melody prominent over harmony), musical cohesion on a single clock, and no perceived volume pumping. | **PENDING** |
+| 4 | **Rhythmic Rest (Beat 4)** | Audition beat 4 (3.0s–4.0s). Verify that the melodic silence is clearly perceptible while the C major triad continues underneath. | **PENDING** |
+| 5 | **Harmonic Resolution (B3 over G)** | Audition beat 5 (4.0s). Verify that the melodic arrival of B3 resolves naturally and convincingly over the G major chord entrance as its major 3rd. | **PENDING** |
+| 6 | **Audible Defect Inspection** | Listen for acoustic clicks, pops, zero-crossing thumps at note boundaries, DAC glitches, buffer stutter, or digital harshness. | **PENDING** |
+
+---
+
+## 8. Licensing & Native Dependency Boundaries
 
 1. **FFmpeg Exclusion:** The V3 harness maintained `disableAudioapiFFmpeg=true`. No FFmpeg binaries were compiled or packaged.
 2. **Optional Codecs Exclusion:** `disableAudioapiStaticExternalLibs=true` excluded optional static libraries (libopus, libvorbis, libogg, openssl).
@@ -188,26 +200,22 @@ Auditioning of all three playback modes was conducted on the iQOO Neo 6 using li
 
 ---
 
-## 8. V3 Acceptance Verdict
+## 9. Validation Status Summary
 
-| Acceptance Criterion | Result | Evidence / Details |
-|----------------------|--------|--------------------|
-| E–D–C–B melodic phrase timing & pitch | **PASS** | Measured on device; pitch within bin width, onset error ≤ 0.2ms |
-| Independent phrase playback | **PASS** | Auditioned cleanly on iQOO Neo 6 |
-| Playback over C $\rightarrow$ G harmony | **PASS** | Auditioned cleanly on iQOO Neo 6 |
-| B resolving over G at 4.0s | **PASS** | Verified numerically (`B3 over G 4.822e+7`) and aurally |
-| One synchronized audio clock | **PASS** | Max combined mix difference `8.94e-8` vs linear sum |
-| Audible one-beat rest | **PASS** | Measured silence `0.00e+0`, verified aurally |
-| Free of clicks, dropouts, distortion | **PASS** | Zero AAudio xruns, peak 0.6494, smooth envelopes |
-| Native `OfflineAudioContext` operational | **PASS** | Device ran native C++ Web Audio graph; no fallback |
-| FFmpeg & optional libraries disabled | **PASS** | Verified via flags, package metadata, and APK inventory |
-| Non-commercial / open licensing boundary | **PASS** | Commercial licensing explicitly retained as open |
-
-**Final Verdict:** **V3 MUSICAL AUDITION PASSED.**
+| Validation Layer | Scope | Result | Details / Evidence |
+|------------------|-------|--------|---------------------|
+| Deterministic PCM (Node) | 23 Checks | **PASSED** | Validated mathematical specification |
+| Android `OfflineAudioContext` | 23 Checks | **PASSED** | Native device execution (`I2202`, Android 14); no fallback |
+| Pitch Accuracy (Zero-Crossing) | E4, D4, C4, B3 | **PASSED** | Within $\pm 0.37\text{ Hz}$ (quantization limit $\approx 0.56\text{ Hz}$) |
+| Timing & Silence | Onsets, Rest | **PASSED** | Onset jitter $\le 0.2\text{ms}$; rest peak `0.00e+0` |
+| Codec Isolation | Native APK | **PASSED** | Zero FFmpeg / external codec libraries in APK |
+| Audio HAL Telemetry | AAudio / Oboe | **VERIFIED** | Clean initialization (`AAUDIO_OK`), zero driver xruns |
+| **Acoustic Listening Audition** | Physical Ear | **PENDING** | Requires human verification per Section 7 checklist |
+| **Commercial Licensing** | Legal / IP | **OPEN** | Requires comprehensive dependency audit (Oboe, etc.) |
 
 ---
 
-## 9. Retained Evidence File Index
+## 10. Retained Evidence File Index
 
 All evidence files are preserved in `experiments/audio-v3/evidence/`:
 
