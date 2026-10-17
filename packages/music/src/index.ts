@@ -1,8 +1,8 @@
-export { assessPlayability, leadEventsSoundingAt, rhythmEvent, rhythmEventsSoundingAt, soundingNotesAt, validateArrangement } from "./arrangement.ts";
-export { chordPitchClasses, chordToneRole, chordTonesInRange, intervalFromRoot, intervalName, majorTriad, minorTriad } from "./harmony.ts";
-export { intervalBetween, intervalUp, noteName, pitchClassOf } from "./pitch.ts";
-export { prototypeTimeline, segmentAt, segmentById, timelineLength } from "./timeline.ts";
-export { conventionalString, defaultNeck, DomainError, isStringIndex, midiAt, placeNote, placedNoteError, standardTuning, stringIndexFromConventional } from "./tuning.ts";
+export { assessPlayability, leadEventsSoundingAt, rhythmEvent, rhythmEventsSoundingAt, soundingNotesAt, validateArrangement } from "./arrangement";
+export { chordPitchClasses, chordToneRole, chordTonesInRange, intervalFromRoot, intervalName, majorTriad, minorTriad } from "./harmony";
+export { intervalBetween, intervalUp, noteName, pitchClassOf } from "./pitch";
+export { prototypeTimeline, segmentAt, segmentById, timelineLength } from "./timeline";
+export { conventionalString, defaultNeck, DomainError, isStringIndex, midiAt, placeNote, placedNoteError, standardTuning, stringIndexFromConventional } from "./tuning";
 export type {
   Arrangement,
   ChordQuality,
@@ -23,4 +23,4 @@ export type {
   StringIndex,
   Timeline,
   Tuning,
-} from "./types.ts";
+} from "./types";

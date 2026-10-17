@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "Increment 2 Audio",
+    "slug": "increment-2-audio",
+    "version": "0.0.1",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "plugins": [
+      [
+        "react-native-audio-api",
+        {
+          "disableFFmpeg": true,
+          "disableStaticExternalLibs": true,
+          "iosBackgroundMode": false,
+          "androidForegroundService": false,
+          "androidPermissions": []
+        }
+      ]
+    ],
+    "android": {
+      "package": "com.validation.increment2audio"
+    },
+    "ios": {
+      "bundleIdentifier": "com.validation.increment2audio",
+      "supportsTablet": false
+    }
+  }
+}

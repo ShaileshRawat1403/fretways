@@ -1,5 +1,5 @@
-import { placedNoteError } from "./tuning.ts";
-import { segmentById, timelineLength } from "./timeline.ts";
+import { placedNoteError } from "./tuning";
+import { segmentById, timelineLength } from "./timeline";
 import type {
   Arrangement,
   LeadEvent,
@@ -10,7 +10,7 @@ import type {
   SoundingNote,
   Timeline,
   Tuning,
-} from "./types.ts";
+} from "./types";
 
 function covers(startBeat: number, durationBeats: number, beat: number): boolean {
   return beat >= startBeat && beat < startBeat + durationBeats;

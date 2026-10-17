@@ -1,5 +1,5 @@
-import { noteName } from "./pitch.ts";
-import type { FretCell, Neck, PlacedNote, StringIndex, Tuning } from "./types.ts";
+import { noteName } from "./pitch";
+import type { FretCell, Neck, PlacedNote, StringIndex, Tuning } from "./types";
 
 export const standardTuning: Tuning = {
   id: "standard-e",

@@ -1,0 +1,26 @@
+{
+  "name": "increment-2-audio-harness",
+  "private": true,
+  "version": "0.0.1",
+  "main": "index.js",
+  "scripts": {
+    "test": "node --experimental-strip-types --import ../../packages/music/test/register.mjs --test test/*.ts",
+    "start": "expo start",
+    "prebuild:android": "expo prebuild --platform android --no-install",
+    "assert-flags": "bash scripts/assert-flags.sh",
+    "android": "expo run:android --device"
+  },
+  "dependencies": {
+    "@fretways/music": "file:../../packages/music",
+    "expo": "58.0.14",
+    "expo-dev-client": "~58.0.14",
+    "react": "19.3.0",
+    "react-native": "0.88.0",
+    "react-native-audio-api": "0.13.6"
+  },
+  "devDependencies": {
+    "@types/react": "~19.3.0",
+    "babel-preset-expo": "~58.0.0",
+    "typescript": "~5.9.2"
+  }
+}

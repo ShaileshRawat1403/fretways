@@ -1,4 +1,4 @@
-import type { ChordSymbol, HarmonicSegment, PitchClass, Timeline } from "./types.ts";
+import type { ChordSymbol, HarmonicSegment, PitchClass, Timeline } from "./types";
 
 function chord(id: string, label: string, root: PitchClass, quality: ChordSymbol["quality"]): ChordSymbol {
   return { id, label, root, quality };

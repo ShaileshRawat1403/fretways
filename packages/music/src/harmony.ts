@@ -1,6 +1,6 @@
-import { intervalBetween, intervalUp, noteName, pitchClassOf } from "./pitch.ts";
-import { conventionalString, isStringIndex, midiAt } from "./tuning.ts";
-import type { ChordSymbol, ChordToneLocation, ChordToneRole, PitchClass, Tuning } from "./types.ts";
+import { intervalBetween, intervalUp, noteName, pitchClassOf } from "./pitch";
+import { conventionalString, isStringIndex, midiAt } from "./tuning";
+import type { ChordSymbol, ChordToneLocation, ChordToneRole, PitchClass, Tuning } from "./types";
 
 export function majorTriad(root: PitchClass): [PitchClass, PitchClass, PitchClass] {
   return [root, intervalUp(root, 4), intervalUp(root, 7)];

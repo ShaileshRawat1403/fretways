@@ -1,4 +1,4 @@
-import type { PitchClass } from "./types.ts";
+import type { PitchClass } from "./types";
 
 const NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"] as const;
 
