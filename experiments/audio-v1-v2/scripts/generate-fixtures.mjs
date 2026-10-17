@@ -1,10 +1,20 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const outDir = join(root, "assets", "fixtures");
+const wavPath = join(outDir, "tone.wav");
+const mp3Path = join(outDir, "tone.mp3");
+const m4aPath = join(outDir, "tone.m4a");
+const force = process.argv.includes("--force");
+
+if (!force && existsSync(wavPath) && existsSync(mp3Path) && existsSync(m4aPath)) {
+  console.log("Committed fixtures kept. Pass --force to regenerate tone.wav, tone.mp3, and tone.m4a.");
+  process.exit(0);
+}
+
 mkdirSync(outDir, { recursive: true });
 
 const sampleRate = 44100;
@@ -34,9 +44,6 @@ for (let i = 0; i < frameCount; i += 1) {
   pcm.writeInt16LE(value, 44 + i * 2);
 }
 
-const wavPath = join(outDir, "tone.wav");
-const mp3Path = join(outDir, "tone.mp3");
-const m4aPath = join(outDir, "tone.m4a");
 writeFileSync(wavPath, pcm);
 
 execFileSync(
