@@ -5,10 +5,13 @@ import { auditionVoices } from "../src/auditionPlan";
 import {
   cellAt,
   clampFirstFret,
+  displayStrings,
   moveNeck,
+  openStringLabel,
   positionJumps,
   referenceChords,
   selectChord,
+  stringRowKey,
   visibleFrets,
   visibleNeck,
   WINDOW_FRETS,
@@ -71,6 +74,15 @@ describe("reference neck", () => {
     const gTone = cellAt(chords.G, 1, 3).role;
     assert.equal(cTone, "root");
     assert.equal(gTone, null);
+  });
+
+  it("gives each string its own row key, including both E strings", () => {
+    const labels = displayStrings().map((stringIndex) => openStringLabel(stringIndex));
+    assert.equal(labels[0], "E");
+    assert.equal(labels[5], "E");
+    const keys = displayStrings().map((stringIndex) => stringRowKey(stringIndex));
+    assert.deepEqual(keys, ["string-5", "string-4", "string-3", "string-2", "string-1", "string-0"]);
+    assert.equal(new Set(keys).size, keys.length);
   });
 
   it("moves across frets 0 through 24 and stops at the edges", () => {

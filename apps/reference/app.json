@@ -5,6 +5,11 @@
     "version": "0.0.1",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
+    "androidStatusBar": {
+      "barStyle": "light-content",
+      "translucent": true,
+      "backgroundColor": "#00000000"
+    },
     "newArchEnabled": true,
     "plugins": [
       [

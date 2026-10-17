@@ -66,6 +66,10 @@ export function openStringLabel(stringIndex: StringIndex): string {
   return noteName(standardTuning.openMidi[stringIndex]).replace(/[0-9-]/g, "");
 }
 
+export function stringRowKey(stringIndex: StringIndex): string {
+  return `string-${stringIndex}`;
+}
+
 export function cellAt(chord: ChordSymbol, stringIndex: StringIndex, fret: number): NeckCell {
   const note = placeNote(standardTuning, defaultNeck, { stringIndex, fret });
   const pitchClass = pitchClassOf(note.midi);

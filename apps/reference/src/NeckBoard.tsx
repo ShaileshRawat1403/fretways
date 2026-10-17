@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import type { LabelMode, NeckCell } from "./neck";
+import { stringRowKey, type LabelMode, type NeckCell } from "./neck";
 
 const roleColor = {
   root: "#e2b657",
@@ -27,7 +27,7 @@ export function NeckBoard(props: {
         ))}
       </View>
       {props.rows.map((row, rowIndex) => (
-        <View key={props.stringLabels[rowIndex]} style={styles.stringRow}>
+        <View key={stringRowKey(row[0].stringIndex)} style={styles.stringRow}>
           <Text style={styles.stringLabel}>{props.stringLabels[rowIndex]}</Text>
           {row.map((cell) => {
             const key = `${cell.stringIndex}-${cell.fret}`;

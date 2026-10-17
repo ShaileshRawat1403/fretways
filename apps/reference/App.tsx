@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { PanResponder, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
+import { PanResponder, Platform, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from "react-native";
 
 import { playAudition } from "./src/audition";
 import { NeckBoard } from "./src/NeckBoard";
@@ -22,6 +22,12 @@ import type { AuditionMode } from "./src/auditionPlan";
 import type { ChordId } from "../../experiments/increment-2-audio/src/voices";
 
 const chords = referenceChords();
+
+function androidTopInset(): number {
+  if (Platform.OS !== "android") return 0;
+  const height = StatusBar.currentHeight;
+  return height && height > 0 ? height : 24;
+}
 
 export default function App() {
   const [state, setState] = useState<ReferenceState>({ chordId: "c-major", firstFret: 0 });
@@ -59,8 +65,8 @@ export default function App() {
   }
 
   return (
-    <SafeAreaView style={styles.screen}>
-      <ScrollView contentContainerStyle={styles.content}>
+    <View style={styles.screen}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingTop: 12 + androidTopInset() }]}>
       <Text style={styles.brand}>FretWays</Text>
       <Text style={styles.kicker}>Reference · harmonic map, not a recorded fingering</Text>
       <View style={styles.row}>
@@ -123,7 +129,7 @@ export default function App() {
       <Text style={styles.status}>{chordTitle(chord)} · frets {frets[0]}–{frets[4]}</Text>
       <Text style={styles.status}>{status}</Text>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -138,7 +144,7 @@ function Legend(props: { color: string; name: string }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#1c1915" },
-  content: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 28, gap: 10 },
+  content: { paddingHorizontal: 16, paddingBottom: 28, gap: 10 },
   brand: { color: "#f3efe6", fontSize: 22, fontWeight: "700" },
   kicker: { color: "#c4b8a5", fontSize: 13, marginTop: -6 },
   row: { flexDirection: "row", alignItems: "center", gap: 8 },
