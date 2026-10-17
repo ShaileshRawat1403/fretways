@@ -1,0 +1,256 @@
+{
+  "label": "V3_RESULT",
+  "note": "Device measurement only. Not a closed validation.",
+  "ffmpegEnabled": false,
+  "device": {
+    "os": "android",
+    "version": "34",
+    "name": "I2202"
+  },
+  "measurementSource": "offline-audio-context",
+  "deterministicPcm": {
+    "pass": true,
+    "sampleRate": 44100,
+    "seconds": 5,
+    "checks": [
+      {
+        "name": "E4 pitch",
+        "pass": true,
+        "detail": "330.00 Hz, expected 329.63 Hz"
+      },
+      {
+        "name": "E4 onset",
+        "pass": true,
+        "detail": "0.0002 s, expected 0.0 s"
+      },
+      {
+        "name": "E4 duration",
+        "pass": true,
+        "detail": "0.9997 s"
+      },
+      {
+        "name": "D4 pitch",
+        "pass": true,
+        "detail": "293.33 Hz, expected 293.66 Hz"
+      },
+      {
+        "name": "D4 onset",
+        "pass": true,
+        "detail": "1.0002 s, expected 1.0 s"
+      },
+      {
+        "name": "D4 duration",
+        "pass": true,
+        "detail": "0.9998 s"
+      },
+      {
+        "name": "C4 pitch",
+        "pass": true,
+        "detail": "261.67 Hz, expected 261.63 Hz"
+      },
+      {
+        "name": "C4 onset",
+        "pass": true,
+        "detail": "2.0002 s, expected 2.0 s"
+      },
+      {
+        "name": "C4 duration",
+        "pass": true,
+        "detail": "0.9997 s"
+      },
+      {
+        "name": "B3 pitch",
+        "pass": true,
+        "detail": "247.22 Hz, expected 246.94 Hz"
+      },
+      {
+        "name": "B3 onset",
+        "pass": true,
+        "detail": "4.0002 s, expected 4.0 s"
+      },
+      {
+        "name": "B3 duration",
+        "pass": true,
+        "detail": "0.9997 s"
+      },
+      {
+        "name": "one-beat rest is silent",
+        "pass": true,
+        "detail": "melody peak 0.00e+0"
+      },
+      {
+        "name": "C3 belongs to C major",
+        "pass": true,
+        "detail": "active 4.388e+7, later 9.281e+3"
+      },
+      {
+        "name": "E3 belongs to C major",
+        "pass": true,
+        "detail": "active 4.398e+7, later 8.010e+2"
+      },
+      {
+        "name": "G3 belongs to C major",
+        "pass": true,
+        "detail": "active 4.409e+7, later 2.633e+2"
+      },
+      {
+        "name": "G2 belongs to G major",
+        "pass": true,
+        "detail": "at G 3.938e+6, during C 1.015e+3"
+      },
+      {
+        "name": "B2 belongs to G major",
+        "pass": true,
+        "detail": "at G 3.951e+6, during C 3.316e+2"
+      },
+      {
+        "name": "D3 belongs to G major",
+        "pass": true,
+        "detail": "at G 3.960e+6, during C 2.755e+2"
+      },
+      {
+        "name": "combined matches one timeline",
+        "pass": true,
+        "detail": "max sample difference 7.45e-8"
+      },
+      {
+        "name": "combined does not clip",
+        "pass": true,
+        "detail": "peak 0.6494"
+      },
+      {
+        "name": "G starts at 4.0 seconds",
+        "pass": true,
+        "detail": "G2 during C 7.610e+2, G2 during G 3.955e+6"
+      },
+      {
+        "name": "B3 resolves with G",
+        "pass": true,
+        "detail": "B3 before 4.0 3.493e+4, B3 over G 4.822e+7"
+      }
+    ]
+  },
+  "offline": {
+    "pass": true,
+    "sampleRate": 44100,
+    "seconds": 5,
+    "checks": [
+      {
+        "name": "E4 pitch",
+        "pass": true,
+        "detail": "330.00 Hz, expected 329.63 Hz"
+      },
+      {
+        "name": "E4 onset",
+        "pass": true,
+        "detail": "0.0002 s, expected 0.0 s"
+      },
+      {
+        "name": "E4 duration",
+        "pass": true,
+        "detail": "0.9997 s"
+      },
+      {
+        "name": "D4 pitch",
+        "pass": true,
+        "detail": "293.33 Hz, expected 293.66 Hz"
+      },
+      {
+        "name": "D4 onset",
+        "pass": true,
+        "detail": "1.0002 s, expected 1.0 s"
+      },
+      {
+        "name": "D4 duration",
+        "pass": true,
+        "detail": "0.9998 s"
+      },
+      {
+        "name": "C4 pitch",
+        "pass": true,
+        "detail": "261.67 Hz, expected 261.63 Hz"
+      },
+      {
+        "name": "C4 onset",
+        "pass": true,
+        "detail": "2.0002 s, expected 2.0 s"
+      },
+      {
+        "name": "C4 duration",
+        "pass": true,
+        "detail": "0.9997 s"
+      },
+      {
+        "name": "B3 pitch",
+        "pass": true,
+        "detail": "247.22 Hz, expected 246.94 Hz"
+      },
+      {
+        "name": "B3 onset",
+        "pass": true,
+        "detail": "4.0002 s, expected 4.0 s"
+      },
+      {
+        "name": "B3 duration",
+        "pass": true,
+        "detail": "0.9997 s"
+      },
+      {
+        "name": "one-beat rest is silent",
+        "pass": true,
+        "detail": "melody peak 0.00e+0"
+      },
+      {
+        "name": "C3 belongs to C major",
+        "pass": true,
+        "detail": "active 4.388e+7, later 9.281e+3"
+      },
+      {
+        "name": "E3 belongs to C major",
+        "pass": true,
+        "detail": "active 4.398e+7, later 8.010e+2"
+      },
+      {
+        "name": "G3 belongs to C major",
+        "pass": true,
+        "detail": "active 4.409e+7, later 2.633e+2"
+      },
+      {
+        "name": "G2 belongs to G major",
+        "pass": true,
+        "detail": "at G 3.938e+6, during C 1.015e+3"
+      },
+      {
+        "name": "B2 belongs to G major",
+        "pass": true,
+        "detail": "at G 3.951e+6, during C 3.316e+2"
+      },
+      {
+        "name": "D3 belongs to G major",
+        "pass": true,
+        "detail": "at G 3.960e+6, during C 2.755e+2"
+      },
+      {
+        "name": "combined matches one timeline",
+        "pass": true,
+        "detail": "max sample difference 8.94e-8"
+      },
+      {
+        "name": "combined does not clip",
+        "pass": true,
+        "detail": "peak 0.6494"
+      },
+      {
+        "name": "G starts at 4.0 seconds",
+        "pass": true,
+        "detail": "G2 during C 7.610e+2, G2 during G 3.955e+6"
+      },
+      {
+        "name": "B3 resolves with G",
+        "pass": true,
+        "detail": "B3 before 4.0 3.493e+4, B3 over G 4.822e+7"
+      }
+    ]
+  },
+  "offlineError": null
+}

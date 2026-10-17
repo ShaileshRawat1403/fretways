@@ -1,5 +1,13 @@
-# Evidence
+# Evidence: V3 Musical Audition
 
-`generated/` is produced on the Mac after `npm run metadata` and after the phone writes `v3-audition-results.json`.
+This directory contains the sanitized evidence and validation artifacts for the FretWays V3 Musical Audition experiment on Android (`react-native-audio-api` 0.13.6).
 
-Nothing here is an Android audition result until those files exist. A passing `npm run check` only covers the deterministic PCM renderer.
+## Evidence Inventory
+
+- `VALIDATION_REPORT.md`: Comprehensive validation report detailing build verification, numerical device measurements, subjective audition observations, audio engine performance, and licensing boundary.
+- `v3-audition-results.json`: Full 23-check numerical measurement record produced by the physical iQOO Neo 6 device (`com.validation.v3audition`) on Android 14.
+- `device.txt`: Sanitized ADB target device specifications (iQOO Neo 6 / I2202, Android 14, API Level 34, `arm64-v8a`).
+- `gradle-flags.txt`: Verified Android build properties enforcing decoder disable flags (`disableAudioapiStaticExternalLibs=true`, `disableAudioapiFFmpeg=true`).
+- `installed-pin.json`: Package version pin and default flag analysis for `react-native-audio-api` 0.13.6.
+- `native-libraries.txt`: Inventory of packaged native `.so` binaries in the Android debug APK confirming the absence of FFmpeg and optional external codecs.
+- `generated/`: Raw artifacts generated during the automated build and measurement flow (`npm-ls.txt`, `installed-pin.json`, `v3-audition-results.json`).
