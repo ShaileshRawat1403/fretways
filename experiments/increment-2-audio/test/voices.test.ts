@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { noteName } from "../../../packages/music/src/index.ts";
-import { assertDistinctVoices, planRapidTaps, planVoices, probes, sameMidiGroups } from "../src/voices.ts";
+import { assertDistinctVoices, assignStartTimes, planRapidTaps, planVoices, probes, sameMidiGroups } from "../src/voices.ts";
 
 describe("voice plans", () => {
   it("keeps the two B3 positions as two solo voices", () => {
@@ -89,5 +89,45 @@ describe("voice plans", () => {
     assert.equal(voices[0].midi, 67);
     assert.equal(voices[0].noteName, "G4");
     assert.equal(voices[0].origin, "gesture");
+  });
+});
+
+describe("shared start timestamp", () => {
+  function spread(values: number[]): number {
+    return Math.max(...values) - Math.min(...values);
+  }
+
+  it("starts a unison, a chord, a six-note probe, and a reference mix together", () => {
+    const cases = [
+      planVoices({ gesture: [probes.openB, probes.gStringB], mode: "solo", chordId: "g-major", idPrefix: "unison" }),
+      planVoices({ gesture: probes.threeNote, mode: "solo", chordId: "g-major", idPrefix: "three" }),
+      planVoices({ gesture: probes.sixNote, mode: "solo", chordId: "g-major", idPrefix: "six" }),
+      planVoices({ gesture: probes.threeNote, mode: "in-context", chordId: "g-major", idPrefix: "context" }),
+    ];
+    for (const plans of cases) {
+      const timed = assignStartTimes(plans, 12.5);
+      assert.equal(spread(timed.map((voice) => voice.startAtContextTime)), 0);
+      assert.equal(spread(timed.map((voice) => voice.contextTimeAtSchedule)), 0);
+      assert.equal(timed[0].startAtContextTime, 12.55);
+      assert.equal(timed.length, plans.length);
+      assert.deepEqual(
+        timed.map((voice) => voice.voiceId),
+        plans.map((voice) => voice.voiceId),
+      );
+    }
+  });
+
+  it("keeps the 80 ms rapid-tap spacing from one shared clock", () => {
+    const plans = planRapidTaps(probes.openB, 8, 0.08);
+    const timed = assignStartTimes(plans, 3);
+    assert.equal(new Set(timed.map((voice) => voice.contextTimeAtSchedule)).size, 1);
+    assert.deepEqual(
+      timed.map((voice) => voice.voiceId),
+      plans.map((voice) => voice.voiceId),
+    );
+    for (let index = 0; index < timed.length; index += 1) {
+      assert.ok(Math.abs(timed[index].startAtContextTime - (3.05 + index * 0.08)) < 1e-12);
+    }
+    assert.equal(timed.filter((voice) => voice.midi === 59).length, 8);
   });
 });

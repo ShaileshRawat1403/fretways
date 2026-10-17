@@ -1,6 +1,6 @@
 import { AudioContext } from "react-native-audio-api";
 
-import { CONTEXT_LEAD_SECONDS, SAMPLE_RATE, VOICE_SECONDS, type ScheduleTiming, type VoicePlan } from "./voices";
+import { assignStartTimes, CONTEXT_LEAD_SECONDS, SAMPLE_RATE, VOICE_SECONDS, type ScheduleTiming, type VoicePlan } from "./voices";
 
 type LiveContext = {
   currentTime: number;
@@ -49,25 +49,27 @@ export async function getContext(): Promise<LiveContext> {
 export async function scheduleVoices(plans: VoicePlan[], requestedAtMs: number): Promise<ScheduledVoice[]> {
   const context = await getContext();
   const sampleRate = context.sampleRate || SAMPLE_RATE;
-  const scheduled: ScheduledVoice[] = [];
-  for (const plan of plans) {
+  const prepared = plans.map((plan) => {
     const samples = toneBuffer(plan.hz, plan.amplitude, sampleRate);
     const buffer = context.createBuffer(1, samples.length, sampleRate);
     buffer.copyToChannel(samples, 0);
     const source = context.createBufferSource();
     source.buffer = buffer;
     source.connect(context.destination);
-    const contextTimeAtSchedule = context.currentTime;
-    const startAtContextTime = contextTimeAtSchedule + CONTEXT_LEAD_SECONDS + plan.startOffsetSeconds;
-    const scheduleInvokedAtMs = performance.now();
-    source.start(startAtContextTime);
+    return { plan, source };
+  });
+  const contextTimeAfterPreparation = context.currentTime;
+  const scheduleInvokedAtMs = performance.now();
+  const timed = assignStartTimes(prepared.map((item) => item.plan), contextTimeAfterPreparation, CONTEXT_LEAD_SECONDS);
+  const scheduled: ScheduledVoice[] = [];
+  for (let index = 0; index < prepared.length; index += 1) {
+    const source = prepared[index].source;
+    const voice = timed[index];
+    source.start(voice.startAtContextTime);
     active.push(source);
     scheduled.push({
-      ...plan,
+      ...voice,
       internalSchedulingLatencyMs: scheduleInvokedAtMs - requestedAtMs,
-      contextLeadSeconds: startAtContextTime - contextTimeAtSchedule,
-      contextTimeAtSchedule,
-      startAtContextTime,
       acousticLatencyMs: null,
       acousticNote: "Not measured. Internal schedule times are not speaker latency.",
     });

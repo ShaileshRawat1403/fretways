@@ -105,6 +105,19 @@ export function planRapidTaps(cell: PlacedNote, count: number, spacingSeconds: n
   })).flat();
 }
 
+export function assignStartTimes(
+  plans: VoicePlan[],
+  contextTimeAfterPreparation: number,
+  leadSeconds = CONTEXT_LEAD_SECONDS,
+): Array<VoicePlan & Pick<ScheduleTiming, "contextTimeAtSchedule" | "startAtContextTime" | "contextLeadSeconds">> {
+  return plans.map((plan) => ({
+    ...plan,
+    contextTimeAtSchedule: contextTimeAfterPreparation,
+    startAtContextTime: contextTimeAfterPreparation + leadSeconds + plan.startOffsetSeconds,
+    contextLeadSeconds: leadSeconds + plan.startOffsetSeconds,
+  }));
+}
+
 export function assertDistinctVoices(voices: VoicePlan[]): string[] {
   const errors: string[] = [];
   const ids = new Set<string>();

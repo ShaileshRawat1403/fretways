@@ -8,7 +8,7 @@ Pitch comes from `@fretways/music`. Each trigger becomes its own voice on one `A
 
 ## What the numbers mean
 
-`internalSchedulingLatencyMs` is the time from the start of the schedule call to `source.start`. `contextLeadSeconds` is how far ahead of `AudioContext.currentTime` the voice was placed. Both are internal.
+`internalSchedulingLatencyMs` is the time from the start of the schedule call until the voices are started. Buffers are prepared first. One audio-context time is then read, and every voice in that gesture uses it. Voices with no musical offset share that start time. The rapid-tap test still spaces voices by 80 ms from the same clock. `contextLeadSeconds` is the lead plus that musical offset. These values are internal.
 
 `acousticLatencyMs` is always null. These timers do not measure the speaker. A listening note is a person's judgment and is not a pass by itself.
 
