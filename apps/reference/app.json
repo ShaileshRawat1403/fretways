@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "FretWays",
+    "slug": "fretways-reference",
+    "version": "0.0.1",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "plugins": [
+      [
+        "react-native-audio-api",
+        {
+          "disableFFmpeg": true,
+          "disableStaticExternalLibs": true,
+          "iosBackgroundMode": false,
+          "androidForegroundService": false,
+          "androidPermissions": []
+        }
+      ]
+    ],
+    "android": {
+      "package": "com.fretways.reference"
+    },
+    "ios": {
+      "bundleIdentifier": "com.fretways.reference",
+      "supportsTablet": false
+    }
+  }
+}
