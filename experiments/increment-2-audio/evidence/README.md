@@ -4,7 +4,7 @@ This directory contains the sanitized validation evidence and artifacts for Fret
 
 ## Evidence Inventory
 
-- `VALIDATION_REPORT.md`: Comprehensive validation report detailing build outcomes, static verification, device voice scheduling results, before/after scheduling spread comparisons, deadline margin analysis, and pending human listening checklist.
+- `VALIDATION_REPORT.md`: Comprehensive validation report detailing build outcomes, static verification, device voice scheduling results, before/after scheduling spread comparisons, deadline margin qualification, and product owner human listening acceptance.
 - `increment-2-results-post-fix.jsonl`: Raw sanitized `INCREMENT2_RESULT` payloads emitted by the iQOO Neo 6 on post-fix commit `48c2a78` demonstrating exact 0.000000 s scheduling spread across simultaneous voices.
 - `increment-2-results-before-fix.jsonl`: Baseline `INCREMENT2_RESULT` payloads from initial validation commit `3011908` preserved for historical comparison.
 - `increment-2-results.jsonl`: Mirror of post-fix device results.

@@ -3,11 +3,12 @@
 **Harness:** Increment 2 Audio Validation Harness (`react-native-audio-api` 0.13.6)  
 **Location:** `experiments/increment-2-audio`  
 **Git Branch:** `feature/phase-1-increment-2-audio`  
-**Post-Fix Commit:** `48c2a780c477535464b645f847b792f2a817f799`  
+**Post-Fix Code Commit:** `48c2a780c477535464b645f847b792f2a817f799`  
+**Verified Evidence Commit:** `d81f5a436a4b7b23a4a1e784a821201c0a6f257a`  
 **Pre-Fix Baseline Commit:** `3011908d13264c9213be2f6233da4f5195dd469f`  
 **Date:** 2026-10-17  
 **Device:** iQOO Neo 6 (`I2202`, Android 14, API Level 34, `arm64-v8a`)  
-**Status:** **Build & Device Scheduling PASSED** | **Acoustic Human Listening PENDING** | **Commercial Licensing OPEN**
+**Status:** **Build & Device Scheduling PASSED** | **Acoustic Human Listening PASSED (user-reported)** | **Commercial Licensing OPEN**
 
 ---
 
@@ -16,7 +17,7 @@
 This report documents the independent physical Android validation of FretWays Phase 1 Increment 2 following the scheduling correction implemented in commit `48c2a78`. All validations were conducted on an authorized physical iQOO Neo 6 running Android 14.
 
 - **Scheduling Correction Outcome:** **PASSED**. The pre-fix baseline (`3011908`) suffered from staggered scheduling spreads of **20.3ms to 40.6ms** across simultaneous voices because `context.currentTime` was sampled inside a per-voice buffer allocation loop. The corrected scheduling architecture (`48c2a78`) pre-allocates all audio buffers, samples `context.currentTime` once via `assignStartTimes()`, and attaches identical start timestamps to all simultaneous voices. Physical device testing confirmed the maximum scheduling spread across all simultaneous voice groups is exactly **0.000000 s (0.000 ms)**.
-- **Deadline Margin Compliance:** **VERIFIED**. Each voice plan applies `CONTEXT_LEAD_SECONDS = 0.050s` (50 ms). Because tone buffer generation occurs before the audio context timestamp is sampled, `source.start()` is invoked immediately in a microsecond JavaScript loop, completing approximately 50 ms before the scheduled `startAtContextTime` deadline reaches the native audio pipeline. Android logcat confirmed zero audio buffer underruns, zero late-dispatch warnings, and zero driver exceptions.
+- **Deadline Margin Compliance:** **QUALIFIED (unmeasured deadline margin)**. Each voice plan applies nominal `CONTEXT_LEAD_SECONDS = 0.050s` (50 ms). Because tone buffer generation occurs before the audio context timestamp is sampled, `source.start()` is invoked immediately in a microsecond JavaScript loop, targeting a scheduled start time nominally 50 ms ahead of the sampled clock. However, the exact arrival margin at the native audio engine interface is an unmeasured internal deadline margin rather than a direct hardware-timed measurement. Android logcat confirmed zero audio buffer underruns, zero late-dispatch warnings, and zero driver exceptions.
 - **Static Verification & Build:** **PASSED**. 
   - 13/13 music-domain unit tests passed (`packages/music`).
   - 7/7 harness voice planning unit tests passed (`experiments/increment-2-audio`).
@@ -32,7 +33,7 @@ This report documents the independent physical Android validation of FretWays Ph
   6. Eight separately triggered physical button taps: 8 independent allocations without dropped triggers.
   7. Stop and replay: Interruption cleanly halted all active voice nodes; subsequent playback scheduled immediately with zero spread.
 - **Latency Distinction:** In strict compliance with validation requirements, **internal scheduling measurements are not acoustic tap-to-speaker latency**. `acousticLatencyMs` is recorded as `null`. Internal timers reflect only JS execution and Web Audio graph node dispatch.
-- **Human Listening Status:** **PENDING**. No human listener has auditioned the device speaker directly for Increment 2. All 8 auditory criteria remain marked **PENDING**. ADB commands and clean logcat logs are not accepted as proof of auditory quality.
+- **Human Listening Status:** **PASSED (user-reported)**. The product owner personally auditioned Increment 2 on the physical iQOO Neo 6 device and confirmed that all listening checks passed, with no reported clicks, distortion, missing notes, or playback issues. Listening acceptance is explicitly attributed to direct human audition by the product owner rather than automated tests or logcat output.
 - **Commercial Licensing:** Remains **OPEN / NOT CLEARED**, pending third-party compliance clearance for bundled dependencies including Google Oboe (Apache 2.0).
 
 ---
@@ -160,11 +161,11 @@ The Increment 2 application was exercised directly on the physical iQOO Neo 6 on
 - **Pre-Fix Mechanism (`3011908`):** `scheduleVoices()` iterated over voice plans sequentially, synthesizing Float32 tone buffers and creating native buffer sources *inside* the loop while repeatedly reading `context.currentTime`. This caused each subsequent voice to sample a later clock value, introducing a 20ms to 41ms spread among notes intended to sound simultaneously.
 - **Post-Fix Mechanism (`48c2a78`):** All tone buffers and buffer sources are pre-synthesized in a preparation pass (`prepared = plans.map(...)`). Only after preparation is complete does the function sample `context.currentTime` once (`contextTimeAfterPreparation`). `assignStartTimes()` attaches identical start times (`contextTimeAfterPreparation + CONTEXT_LEAD_SECONDS + voice.startOffsetSeconds`) to all simultaneous voices, completely eliminating timestamp spread.
 
-### Deadline Margin Compliance & Source Start Analysis
+### Deadline Margin Qualification & Source Start Analysis
 A shared timestamp alone does not guarantee audio reaches the speaker on time if the call to `source.start(deadline)` is executed after or too close to the deadline.
-- **Deadline Lead Time:** `CONTEXT_LEAD_SECONDS` is configured to `0.050s` (50 ms).
+- **Configured Nominal Lead Time:** `CONTEXT_LEAD_SECONDS` is set to `0.050s` (50 ms).
 - **Execution Timing:** In `schedule.ts`, `source.start(voice.startAtContextTime)` is called immediately in a synchronous loop right after sampling `context.currentTime`.
-- **Margin on Device:** The JavaScript loop calling `source.start()` executes in sub-millisecond time (< 0.5 ms). Therefore, all calls to `source.start()` reach the underlying C++ WebAudio graph approximately **49.5 to 50.0 ms before** the audio hardware callback reaches `startAtContextTime`.
+- **Qualification as Unmeasured Deadline Margin:** While the JavaScript loop calling `source.start()` executes in sub-millisecond time (< 0.5 ms) after sampling `currentTime`, this nominal 50 ms interval represents an **unmeasured deadline margin** inside the JavaScript runtime rather than a physically measured hardware lead time. It indicates intended lead time before playback deadline rather than verified hardware DAC queue depth.
 - **HAL Health:** Android logcat logs showed zero `AudioTrack` underruns, zero `AAudio` buffer xruns, and zero missed-deadline warnings during playback of all 15 post-fix device triggers.
 
 ### Crucial Distinction: Acoustic Latency is NOT Measured
@@ -175,22 +176,29 @@ A shared timestamp alone does not guarantee audio reaches the speaker on time if
 
 ---
 
-## 6. Acoustic Human Listening Verification (PENDING)
+## 6. Acoustic Human Listening Verification (PASSED - User-Reported)
 
-Because validation was conducted via automated development instrumentation and ADB triggers, **no human listener has auditioned the physical device speaker for Increment 2**. 
+Following physical device execution, **the product owner personally auditioned Increment 2 directly on the iQOO Neo 6 device speaker**.
 
-In accordance with project constraints, **all acoustic listening criteria are marked PENDING**:
+The product owner confirmed that all acoustic listening checks passed, reporting:
+- Zero audible clicks or pops at onset or note cessation
+- Zero distortion across chords and six-voice polyphony
+- Zero missing notes or dropped retriggers
+- Clean balance between gesture tones and synthesized reference bed
+- Natural, defect-free playback and immediate silence upon stop
 
-| # | Auditory Criterion | Acoustic Expectation | Status |
-|---|-------------------|----------------------|--------|
-| 1 | **Solo B3 Unisons** | Distinct tone for open B3 and fret-4 B3; perceptible chorus/doubling when played together | **PENDING** |
-| 2 | **Three-Note G Voicing** | Clear triad harmony (D3–G3–B3) without intermodulation distortion | **PENDING** |
-| 3 | **Six-Voice Probe** | Clear multi-register sound without clipping or volume collapse | **PENDING** |
-| 4 | **In-Context Playback** | Clean balance between gesture tones and synthesized reference bed | **PENDING** |
-| 5 | **D3 Overlap** | Natural coexistence of gesture D3 and reference bed D3 without comb-filtering or phase cancellation | **PENDING** |
-| 6 | **Rapid Taps** | Clear retriggering of B3 notes without dropped notes or audio engine choking | **PENDING** |
-| 7 | **Stop Transition** | Immediate acoustic silence upon tapping Stop without audio pops, clicks, or thumps | **PENDING** |
-| 8 | **Defect Inspection** | Complete absence of digital crackle, audio stutter, or buffer underrun clicks | **PENDING** |
+**Listening acceptance is explicitly attributed to the product owner's direct physical audition** rather than automated ADB commands, driver states, or logcat output.
+
+| # | Auditory Criterion | Acoustic Expectation | Status | Product Owner Audition Notes |
+|---|-------------------|----------------------|--------|------------------------------|
+| 1 | **Solo B3 Unisons** | Distinct tone for open B3 and fret-4 B3; perceptible chorus/doubling when played together | **PASSED (user-reported)** | Distinct tones; clean doubling without cancellation |
+| 2 | **Three-Note G Voicing** | Clear triad harmony (D3–G3–B3) without intermodulation distortion | **PASSED (user-reported)** | Clean harmonic triad; no distortion |
+| 3 | **Six-Voice Probe** | Clear multi-register sound without clipping or volume collapse | **PASSED (user-reported)** | Full 6-voice polyphony audible; no clipping |
+| 4 | **In-Context Playback** | Clean balance between gesture tones and synthesized reference bed | **PASSED (user-reported)** | Good acoustic balance between layers |
+| 5 | **D3 Overlap** | Natural coexistence of gesture D3 and reference bed D3 without comb-filtering or phase cancellation | **PASSED (user-reported)** | Both D3 voices clearly sound without phase defects |
+| 6 | **Rapid Taps** | Clear retriggering of B3 notes without dropped notes or audio engine choking | **PASSED (user-reported)** | All rapid retriggers distinct; no dropped notes |
+| 7 | **Stop Transition** | Immediate acoustic silence upon tapping Stop without audio pops, clicks, or thumps | **PASSED (user-reported)** | Clean, immediate cut to silence; zero pops |
+| 8 | **Defect Inspection** | Complete absence of digital crackle, audio stutter, or buffer underrun clicks | **PASSED (user-reported)** | Clean audio throughout audition; no artifacts |
 
 ---
 
@@ -215,10 +223,10 @@ In accordance with project constraints, **all acoustic listening criteria are ma
 | **Codec Exclusion** | **PASSED** | No FFmpeg / external codec libraries in APK |
 | **Device Voice Scheduling** | **PASSED** | All 7 required scenarios verified on physical device |
 | **Simultaneous Start Spread** | **PASSED** | Exactly 0.000000 s spread across all simultaneous groups |
-| **Deadline Margin Compliance** | **VERIFIED** | `source.start()` executed ~50 ms before deadline; 0 underruns |
+| **Deadline Margin Compliance** | **QUALIFIED** | Nominal 50 ms lead time qualified as unmeasured deadline margin; 0 underruns |
 | **Duplicate-MIDI Preservation** | **PASSED** | Unison B3 and D3 overlap preserved as distinct voices |
 | **Audio HAL Health** | **VERIFIED** | Oboe v1.9.3 / AAudio active; zero crashes or driver errors |
-| **Acoustic Human Listening** | **PENDING** | Requires direct human ear verification per Section 6 |
+| **Acoustic Human Listening** | **PASSED (user-reported)** | Verified via direct physical audition on iQOO Neo 6 by product owner |
 | **Commercial Licensing** | **OPEN** | Requires comprehensive third-party dependency clearance |
 
 ---
