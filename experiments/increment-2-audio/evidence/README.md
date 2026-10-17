@@ -4,8 +4,10 @@ This directory contains the sanitized validation evidence and artifacts for Fret
 
 ## Evidence Inventory
 
-- `VALIDATION_REPORT.md`: Comprehensive validation report detailing build outcomes, TypeScript blocker resolution, device voice scheduling results, timing analysis, and pending human listening checklist.
-- `increment-2-results.jsonl`: Raw sanitized `INCREMENT2_RESULT` payloads emitted by the iQOO Neo 6 across all 25 test triggers.
+- `VALIDATION_REPORT.md`: Comprehensive validation report detailing build outcomes, static verification, device voice scheduling results, before/after scheduling spread comparisons, deadline margin analysis, and pending human listening checklist.
+- `increment-2-results-post-fix.jsonl`: Raw sanitized `INCREMENT2_RESULT` payloads emitted by the iQOO Neo 6 on post-fix commit `48c2a78` demonstrating exact 0.000000 s scheduling spread across simultaneous voices.
+- `increment-2-results-before-fix.jsonl`: Baseline `INCREMENT2_RESULT` payloads from initial validation commit `3011908` preserved for historical comparison.
+- `increment-2-results.jsonl`: Mirror of post-fix device results.
 - `device.txt`: Sanitized ADB target device specifications (iQOO Neo 6 / I2202, Android 14, API Level 34, `arm64-v8a`).
 - `gradle-flags.txt`: Extracted build properties enforcing decoder disable flags (`disableAudioapiStaticExternalLibs=true`, `disableAudioapiFFmpeg=true`).
 - `installed-pin.json`: Package version pin analysis for `react-native-audio-api` 0.13.6.
