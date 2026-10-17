@@ -105,7 +105,9 @@ export function validateArrangement(arrangement: Arrangement, timeline: Timeline
     } else if (event.kind === "rest") {
       if ("note" in event) errors.push(`${event.id} is a rest and cannot carry a note.`);
     } else {
-      errors.push(`${event.id} is not a note or a rest.`);
+      errors.push(
+        `${(event as { id?: string }).id ?? "unknown"} is not a note or a rest.`
+      );
     }
   }
 
