@@ -8,6 +8,7 @@ import type {
   PlacedNote,
   RhythmEvent,
   SoundingNote,
+  StringIndex,
   Timeline,
   Tuning,
 } from "./types";
@@ -29,7 +30,7 @@ export function assessPlayability(notes: PlacedNote[]): Playability {
   return "plausible";
 }
 
-export function rhythmEvent(input: Omit<RhythmEvent, "kind" | "playability"> & { playability?: Playability }): RhythmEvent {
+export function rhythmEvent(input: Omit<RhythmEvent, "kind" | "playability" | "mutedStrings"> & { playability?: Playability; mutedStrings?: StringIndex[] }): RhythmEvent {
   return {
     kind: "rhythm",
     playability: input.playability ?? assessPlayability(input.notes),
@@ -38,6 +39,7 @@ export function rhythmEvent(input: Omit<RhythmEvent, "kind" | "playability"> & {
     startBeat: input.startBeat,
     durationBeats: input.durationBeats,
     notes: input.notes,
+    mutedStrings: input.mutedStrings ?? [],
   };
 }
 
@@ -89,6 +91,17 @@ export function validateArrangement(arrangement: Arrangement, timeline: Timeline
     for (const note of event.notes) {
       const problem = placedNoteError(note, tuning, neck);
       if (problem) errors.push(`${event.id}: ${problem}`);
+    }
+    const muted = event.mutedStrings ?? [];
+    const used = new Set(event.notes.map((note) => note.stringIndex));
+    const seenMuted = new Set<number>();
+    for (const stringIndex of muted) {
+      if (stringIndex < 0 || stringIndex > 5 || !Number.isInteger(stringIndex)) {
+        errors.push(`${event.id} mutes a string that is not on the neck.`);
+      }
+      if (seenMuted.has(stringIndex)) errors.push(`${event.id} mutes string ${stringIndex} more than once.`);
+      seenMuted.add(stringIndex);
+      if (used.has(stringIndex)) errors.push(`${event.id} mutes string ${stringIndex} and also frets it.`);
     }
   }
 

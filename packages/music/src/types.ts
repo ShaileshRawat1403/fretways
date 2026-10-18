@@ -53,6 +53,7 @@ export type RhythmEvent = {
   startBeat: number;
   durationBeats: number;
   notes: PlacedNote[];
+  mutedStrings: StringIndex[];
   playability: Playability;
 };
 

@@ -271,6 +271,21 @@ describe("timing and tuning validation", () => {
     assert.deepEqual(validateArrangement(arrangement, timeline, standardTuning, defaultNeck), []);
   });
 
+  it("rejects a muted string that is also fretted", () => {
+    const event = rhythmEvent({
+      id: "mute-clash",
+      segmentId: "g-major",
+      startBeat: 4,
+      durationBeats: 4,
+      notes: [cell(3, 0)],
+      mutedStrings: [3],
+    });
+    assert.match(
+      validateArrangement({ rhythm: [event], lead: [] }, timeline, standardTuning, defaultNeck).join("\n"),
+      /mutes string 3 and also frets it/,
+    );
+  });
+
   it("marks an impossible string reuse without deleting the notes", () => {
     const notes = [cell(4, 0), cell(4, 3)];
     assert.equal(assessPlayability(notes), "duplicate-string");
