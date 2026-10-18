@@ -14,6 +14,8 @@ export function NeckBoard(props: {
   stringLabels: string[];
   labelMode: LabelMode;
   selectedKey: string | null;
+  marks?: Record<string, "draft" | "yours">;
+  mutedStrings?: number[];
   onTap: (cell: NeckCell) => void;
 }) {
   return (
@@ -28,23 +30,28 @@ export function NeckBoard(props: {
       </View>
       {props.rows.map((row, rowIndex) => (
         <View key={stringRowKey(row[0].stringIndex)} style={styles.stringRow}>
-          <Text style={styles.stringLabel}>{props.stringLabels[rowIndex]}</Text>
+          <Text style={styles.stringLabel}>
+            {props.stringLabels[rowIndex]}
+            {props.mutedStrings?.includes(row[0].stringIndex) ? "×" : ""}
+          </Text>
           {row.map((cell) => {
             const key = `${cell.stringIndex}-${cell.fret}`;
             const selected = props.selectedKey === key;
             const marker = cell.role ? roleColor[cell.role] : null;
             const caption =
               props.labelMode === "names" ? cell.noteName.replace(/[0-9-]/g, "") : props.labelMode === "intervals" ? cell.intervalLabel : "";
+            const mark = props.marks?.[key];
             return (
               <Pressable
                 key={key}
                 accessibilityRole="button"
                 accessibilityLabel={`String ${cell.conventionalString}, fret ${cell.fret}, ${cell.noteName}`}
                 onPress={() => props.onTap(cell)}
-                style={[styles.cell, selected && styles.selected]}
+                style={[styles.cell, selected && styles.selected, mark === "draft" && styles.draft]}
               >
                 <View style={styles.stringLine} />
                 {marker ? <View style={[styles.marker, { backgroundColor: marker }]} /> : null}
+                {mark === "yours" ? <View style={styles.yours} /> : null}
                 {caption ? (
                   <Text style={[styles.caption, marker ? styles.captionOnMarker : styles.quiet]}>{caption}</Text>
                 ) : null}
@@ -78,6 +85,15 @@ const styles = StyleSheet.create({
     borderLeftColor: "#8d8376",
   },
   selected: { backgroundColor: "#3a332c" },
+  draft: { borderWidth: 2, borderColor: "#f3efe6" },
+  yours: {
+    position: "absolute",
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 2,
+    borderColor: "#e07a5f",
+  },
   stringLine: {
     position: "absolute",
     left: 0,

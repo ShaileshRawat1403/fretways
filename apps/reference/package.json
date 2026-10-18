@@ -15,6 +15,7 @@
     "@fretways/music": "file:../../packages/music",
     "expo": "58.0.14",
     "expo-dev-client": "~58.0.14",
+    "expo-file-system": "~58.0.9",
     "react": "19.3.0",
     "react-native": "0.88.0",
     "react-native-audio-api": "0.13.6"
