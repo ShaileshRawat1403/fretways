@@ -1,0 +1,18 @@
+{
+  "note": "Locally generated 440 Hz sine. Not taken from a recording.",
+  "sampleRate": 44100,
+  "durationSeconds": 1,
+  "frequencyHz": 440,
+  "amplitude": 0.5,
+  "channels": 1,
+  "files": [
+    "tone.wav",
+    "tone.mp3",
+    "tone.m4a"
+  ],
+  "compareTolerances": {
+    "durationSeconds": 0.08,
+    "estimatedHz": 20,
+    "minimumPeak": 0.05
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "V3 Musical Audition",
+    "slug": "v3-musical-audition",
+    "version": "0.0.1",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "plugins": [
+      [
+        "react-native-audio-api",
+        {
+          "disableFFmpeg": true,
+          "disableStaticExternalLibs": true,
+          "iosBackgroundMode": false,
+          "androidForegroundService": false,
+          "androidPermissions": []
+        }
+      ]
+    ],
+    "android": {
+      "package": "com.validation.v3audition"
+    },
+    "ios": {
+      "bundleIdentifier": "com.validation.v3audition",
+      "supportsTablet": false
+    }
+  }
+}

@@ -1,0 +1,527 @@
+import {
+  assessPlayability,
+  defaultNeck,
+  placeNote,
+  prototypeTimeline,
+  rhythmEvent,
+  segmentAt,
+  segmentById,
+  standardTuning,
+  timelineLength,
+} from "@/lib/music";
+import type {
+  Arrangement,
+  HarmonicSegment,
+  LeadEvent,
+  PlacedNote,
+  RhythmEvent,
+  StringIndex,
+  Timeline,
+} from "@/lib/music";
+
+import { clampFirstFret, type LabelMode } from "./neck";
+
+export type HarmonyChoice = "follow" | "hold";
+export type Workspace = "reference" | "yours" | "compare";
+export type YoursMode = "explore" | "rhythm" | "lead";
+export type CompareView = "reference" | "yours";
+export type AuditionMode = "solo" | "in-context";
+export type LeadDuration = 1 | 0.5;
+
+export type DraftChoice =
+  | { stringIndex: StringIndex; kind: "unused" }
+  | { stringIndex: StringIndex; kind: "muted" }
+  | { stringIndex: StringIndex; kind: "sounding"; fret: number };
+
+export type Session = {
+  timeline: Timeline;
+  arrangement: Arrangement;
+  beat: number;
+  playing: boolean;
+  loop: boolean;
+  transportEpoch: number;
+  harmonyChoice: HarmonyChoice;
+  heldSegmentId: string;
+  firstFret: number;
+  workspace: Workspace;
+  yoursMode: YoursMode;
+  compareView: CompareView;
+  auditionMode: AuditionMode;
+  labelMode: LabelMode;
+  cursorBeat: number;
+  leadDuration: LeadDuration;
+  selectedLeadId: string | null;
+  draft: DraftChoice[];
+  nextId: number;
+  undo: Arrangement[];
+  redo: Arrangement[];
+  notice: string;
+};
+
+const STRINGS: StringIndex[] = [0, 1, 2, 3, 4, 5];
+
+export function emptyArrangement(): Arrangement {
+  return { rhythm: [], lead: [] };
+}
+
+export function emptyDraft(): DraftChoice[] {
+  return STRINGS.map((stringIndex) => ({ stringIndex, kind: "unused" }));
+}
+
+export function createSession(timeline: Timeline = prototypeTimeline()): Session {
+  return {
+    timeline,
+    arrangement: emptyArrangement(),
+    beat: 0,
+    playing: false,
+    loop: false,
+    transportEpoch: 0,
+    harmonyChoice: "follow",
+    heldSegmentId: timeline.segments[0]?.id ?? "",
+    firstFret: 0,
+    workspace: "reference",
+    yoursMode: "explore",
+    compareView: "reference",
+    auditionMode: "in-context",
+    labelMode: "markers",
+    cursorBeat: 0,
+    leadDuration: 1,
+    selectedLeadId: null,
+    draft: emptyDraft(),
+    nextId: 1,
+    undo: [],
+    redo: [],
+    notice: "",
+  };
+}
+
+export function songLength(session: Session): number {
+  return timelineLength(session.timeline);
+}
+
+export function displayedSegment(session: Session): HarmonicSegment {
+  if (session.harmonyChoice === "hold") {
+    return segmentById(session.timeline, session.heldSegmentId) ?? session.timeline.segments[0];
+  }
+  return segmentAt(session.timeline, Math.min(session.beat, songLength(session) - 0.0001)) ?? session.timeline.segments[0];
+}
+
+export function playheadSegment(session: Session): HarmonicSegment | null {
+  return segmentAt(session.timeline, session.beat);
+}
+
+export function formatBeat(beat: number, length = 16): string {
+  if (beat >= length) return "end";
+  const safe = Math.max(0, beat);
+  return `bar ${Math.floor(safe / 4) + 1}, beat ${Math.floor(safe % 4) + 1}`;
+}
+
+export function formatInsertion(beat: number, length = 16): string {
+  if (beat >= length - 1e-9) return "end";
+  const safe = Math.max(0, beat);
+  const bar = Math.floor(safe / 4 + 1e-9) + 1;
+  const within = safe - (bar - 1) * 4;
+  const nearestHalf = Math.round(within * 2) / 2;
+  const whole = Math.floor(nearestHalf + 1e-9);
+  const beatNumber = whole + 1;
+  if (Math.abs(within - nearestHalf) > 1e-6) return `${bar}.${beatNumber} (${safe.toFixed(2)})`;
+  if (Math.abs(nearestHalf - whole - 0.5) < 1e-6) return `${bar}.${beatNumber}½`;
+  return `${bar}.${beatNumber}`;
+}
+
+export function snapToGrid(beat: number, grid: LeadDuration): number {
+  const units = grid === 1 ? 1 : 2;
+  return Math.floor(beat * units + 1e-6) / units;
+}
+
+function bump(session: Session): Session {
+  return { ...session, transportEpoch: session.transportEpoch + 1 };
+}
+
+export function seek(session: Session, beat: number): Session {
+  const length = songLength(session);
+  const next = Math.min(length, Math.max(0, beat));
+  return bump({ ...session, beat: next, notice: `Playhead ${formatBeat(next, length)}.` });
+}
+
+export function selectSegment(session: Session, segmentId: string): Session {
+  const segment = segmentById(session.timeline, segmentId);
+  if (!segment) return { ...session, notice: "That chord is not on the timeline." };
+  return seek({ ...session, playing: session.playing }, segment.startBeat);
+}
+
+export function setHarmonyChoice(session: Session, choice: HarmonyChoice): Session {
+  if (choice === "hold") {
+    const current = displayedSegment(session);
+    return { ...session, harmonyChoice: "hold", heldSegmentId: current.id, notice: `Holding ${current.chord.label}.` };
+  }
+  return { ...session, harmonyChoice: "follow", notice: "Following the playhead." };
+}
+
+export function setLoop(session: Session, loop: boolean): Session {
+  return bump({
+    ...session,
+    loop,
+    notice: loop ? "Loop on. Playback will reschedule." : "Loop off. Playback will reschedule.",
+  });
+}
+
+export function play(session: Session): Session {
+  const length = songLength(session);
+  const beat = session.beat >= length ? 0 : session.beat;
+  return bump({ ...session, beat, playing: true, notice: "Synthesized harmony. Not the original recording." });
+}
+
+export function pause(session: Session): Session {
+  return bump({ ...session, playing: false, notice: "Paused." });
+}
+
+export function stop(session: Session): Session {
+  return bump({ ...session, playing: false, beat: 0, notice: "Stopped." });
+}
+
+export function placePlayhead(session: Session, beat: number): Session {
+  const length = songLength(session);
+  if (session.loop && beat >= length) {
+    return { ...session, beat: beat % length, playing: true };
+  }
+  if (beat >= length) return { ...session, beat: length, playing: false, notice: "End of the progression." };
+  if (beat < 0) return { ...session, beat: 0 };
+  return { ...session, beat };
+}
+
+export function moveNeck(session: Session, firstFret: number): Session {
+  return { ...session, firstFret: clampFirstFret(firstFret) };
+}
+
+export function setWorkspace(session: Session, workspace: Workspace): Session {
+  return { ...session, workspace };
+}
+
+export function setYoursMode(session: Session, yoursMode: YoursMode): Session {
+  const next = { ...session, yoursMode, workspace: "yours" as const };
+  if (yoursMode !== "lead") return next;
+  if (cursorInsideDisplayed(next)) {
+    const segment = displayedSegment(next);
+    return { ...next, notice: `${segment.chord.label} · insertion ${formatBeat(next.cursorBeat)}.` };
+  }
+  return placeCursorAtSection(next);
+}
+
+export function setCompareView(session: Session, compareView: CompareView): Session {
+  return { ...session, compareView, workspace: "compare" };
+}
+
+export function exploreNotice(session: Session, sounded: string, role: string | null, chordLabel: string): Session {
+  const letter = sounded.replace(/[0-9-]/g, "");
+  const sentence = role ? `${letter} is the ${role} of ${chordLabel}.` : `${letter} is outside ${chordLabel}.`;
+  return { ...session, notice: sentence };
+}
+
+export function keepGrip(
+  session: Session,
+  grip: { name: string; notes: { stringIndex: StringIndex; fret: number }[]; muted: StringIndex[] },
+): Session {
+  const draft: DraftChoice[] = STRINGS.map((stringIndex) => {
+    if (grip.muted.includes(stringIndex)) return { stringIndex, kind: "muted" };
+    const hit = grip.notes.find((note) => note.stringIndex === stringIndex);
+    if (hit) return { stringIndex, kind: "sounding", fret: hit.fret };
+    return { stringIndex, kind: "unused" };
+  });
+  const saved = commitDraft({ ...session, draft });
+  return { ...saved, draft: emptyDraft(), notice: `${grip.name} is kept on ${displayedSegment(session).chord.label}.` };
+}
+
+function remember(session: Session, arrangement: Arrangement, notice: string): Session {
+  return {
+    ...session,
+    arrangement,
+    undo: [...session.undo, session.arrangement].slice(-40),
+    redo: [],
+    notice,
+  };
+}
+
+export function draftChoice(session: Session, stringIndex: StringIndex): DraftChoice {
+  return session.draft.find((choice) => choice.stringIndex === stringIndex) ?? { stringIndex, kind: "unused" };
+}
+
+export function setDraftFret(session: Session, stringIndex: StringIndex, fret: number): Session {
+  const current = draftChoice(session, stringIndex);
+  const nextChoice: DraftChoice =
+    current.kind === "sounding" && current.fret === fret
+      ? { stringIndex, kind: "unused" }
+      : { stringIndex, kind: "sounding", fret };
+  return {
+    ...session,
+    draft: session.draft.map((choice) => (choice.stringIndex === stringIndex ? nextChoice : choice)),
+    notice: nextChoice.kind === "unused" ? "Cleared that string." : `String ${6 - stringIndex} · fret ${fret}. Not saved yet.`,
+  };
+}
+
+export function muteDraftString(session: Session, stringIndex: StringIndex): Session {
+  const current = draftChoice(session, stringIndex);
+  const nextChoice: DraftChoice = current.kind === "muted" ? { stringIndex, kind: "unused" } : { stringIndex, kind: "muted" };
+  return {
+    ...session,
+    draft: session.draft.map((choice) => (choice.stringIndex === stringIndex ? nextChoice : choice)),
+  };
+}
+
+export function clearDraft(session: Session): Session {
+  return { ...session, draft: emptyDraft(), notice: "Voicing cleared. The arrangement is unchanged." };
+}
+
+export function draftMaterial(session: Session): { notes: PlacedNote[]; mutedStrings: StringIndex[]; playability: ReturnType<typeof assessPlayability> } {
+  const notes: PlacedNote[] = [];
+  const mutedStrings: StringIndex[] = [];
+  for (const choice of session.draft) {
+    if (choice.kind === "muted") mutedStrings.push(choice.stringIndex);
+    if (choice.kind === "sounding") notes.push(placeNote(standardTuning, defaultNeck, { stringIndex: choice.stringIndex, fret: choice.fret }));
+  }
+  return { notes, mutedStrings, playability: assessPlayability(notes) };
+}
+
+export function commitDraft(session: Session): Session {
+  const segment = displayedSegment(session);
+  const { notes, mutedStrings, playability } = draftMaterial(session);
+  if (notes.length === 0 && mutedStrings.length === 0) {
+    return { ...session, notice: "Nothing to save on this chord." };
+  }
+  if (playability === "duplicate-string") {
+    return { ...session, notice: "One fret per string. Nothing was saved." };
+  }
+  const event: RhythmEvent = rhythmEvent({
+    id: `rhythm-${segment.id}`,
+    segmentId: segment.id,
+    startBeat: segment.startBeat,
+    durationBeats: segment.durationBeats,
+    notes,
+    mutedStrings,
+  });
+  const rhythm = [...session.arrangement.rhythm.filter((item) => item.segmentId !== segment.id), event];
+  const warning = playability === "wide-span" ? " Saved with a wide stretch." : "";
+  return remember(
+    session,
+    { rhythm, lead: session.arrangement.lead },
+    `Saved a ${segment.chord.label} voicing.${warning}`,
+  );
+}
+
+export function removeRhythm(session: Session): Session {
+  const segment = displayedSegment(session);
+  const rhythm = session.arrangement.rhythm.filter((item) => item.segmentId !== segment.id);
+  if (rhythm.length === session.arrangement.rhythm.length) return { ...session, notice: "No saved voicing on this chord." };
+  return remember(session, { rhythm, lead: session.arrangement.lead }, `Removed the ${segment.chord.label} voicing.`);
+}
+
+function leadFits(session: Session, start: number, duration: number): boolean {
+  return start >= 0 && start + duration <= songLength(session);
+}
+
+export function cursorInsideDisplayed(session: Session): boolean {
+  const segment = displayedSegment(session);
+  return session.cursorBeat >= segment.startBeat && session.cursorBeat < segment.startBeat + segment.durationBeats;
+}
+
+export function placeCursor(session: Session, beat: number): Session {
+  const length = songLength(session);
+  const next = Math.min(length, Math.max(0, beat));
+  const segment = displayedSegment({ ...session, cursorBeat: next });
+  return {
+    ...session,
+    cursorBeat: next,
+    notice: `${segment.chord.label} is selected · insertion ${formatInsertion(next, length)}.`,
+  };
+}
+
+export function placeCursorAtSection(session: Session): Session {
+  const segment = displayedSegment(session);
+  return placeCursor(session, segment.startBeat);
+}
+
+export function placeCursorAtPlayhead(session: Session): Session {
+  const snapped = snapToGrid(Math.min(session.beat, songLength(session)), session.leadDuration);
+  return placeCursor(session, snapped);
+}
+
+export function setLeadDuration(session: Session, leadDuration: LeadDuration): Session {
+  return placeCursor({ ...session, leadDuration }, snapToGrid(session.cursorBeat, leadDuration));
+}
+
+export function stepCursor(session: Session, direction: -1 | 1): Session {
+  const segment = displayedSegment(session);
+  const grid = session.leadDuration;
+  const next = snapToGrid(session.cursorBeat, grid) + direction * grid;
+  const end = segment.startBeat + segment.durationBeats;
+  if (next < segment.startBeat || next >= end) {
+    return { ...session, notice: `Insertion stays inside ${segment.chord.label}.` };
+  }
+  return placeCursor(session, next);
+}
+
+export function nextLeadSerial(events: { id: string }[]): number {
+  let next = 1;
+  for (const event of events) {
+    const match = /^lead-(\d+)$/.exec(event.id);
+    if (!match) continue;
+    next = Math.max(next, Number(match[1]) + 1);
+  }
+  return next;
+}
+
+function allocateLeadId(session: Session): { session: Session; id: string } {
+  const used = new Set(session.arrangement.lead.map((event) => event.id));
+  let serial = Math.max(session.nextId, nextLeadSerial(session.arrangement.lead));
+  let id = `lead-${serial}`;
+  while (used.has(id)) {
+    serial += 1;
+    id = `lead-${serial}`;
+  }
+  return { session: { ...session, nextId: serial + 1 }, id };
+}
+
+export function appendPhrase(session: Session, note: PlacedNote, touch: "pick" | "hammer" | "pull" | "slide" | "bend"): Session {
+  const segment = displayedSegment(session);
+  const segmentEnd = segment.startBeat + segment.durationBeats;
+  const inBar = session.arrangement.lead
+    .filter((event) => event.startBeat >= segment.startBeat && event.startBeat < segmentEnd)
+    .sort((a, b) => a.startBeat - b.startBeat);
+  const last = inBar[inBar.length - 1];
+  const start = last ? last.startBeat + last.durationBeats : segment.startBeat;
+  const duration = 0.5;
+  if (start + duration > segmentEnd + 1e-9) {
+    return { ...session, notice: "This bar is full." };
+  }
+  const allocated = allocateLeadId(session);
+  const event: LeadEvent = { kind: "note", id: allocated.id, startBeat: start, durationBeats: duration, note, touch };
+  return remember(
+    { ...allocated.session, cursorBeat: start + duration, selectedLeadId: allocated.id },
+    { rhythm: session.arrangement.rhythm, lead: [...session.arrangement.lead, event] },
+    "",
+  );
+}
+
+export function setLeadTouch(session: Session, id: string, touch: "pick" | "hammer" | "pull" | "slide" | "bend"): Session {
+  const lead = session.arrangement.lead.map((event) => (event.id === id && event.kind === "note" ? { ...event, touch } : event));
+  return remember(session, { rhythm: session.arrangement.rhythm, lead }, "");
+}
+
+export function phraseInBar(session: Session): Extract<LeadEvent, { kind: "note" }>[] {
+  const segment = displayedSegment(session);
+  const segmentEnd = segment.startBeat + segment.durationBeats;
+  return session.arrangement.lead
+    .filter((event): event is Extract<LeadEvent, { kind: "note" }> => event.kind === "note" && event.startBeat >= segment.startBeat && event.startBeat < segmentEnd)
+    .sort((a, b) => a.startBeat - b.startBeat);
+}
+
+export function insertLead(session: Session, note: PlacedNote | null): Session {
+  const segment = displayedSegment(session);
+  if (!cursorInsideDisplayed(session)) {
+    return {
+      ...session,
+      notice: `${segment.chord.label} is selected, but insertion is at ${formatInsertion(session.cursorBeat)}. Place the cursor in this section.`,
+    };
+  }
+  const duration = session.leadDuration;
+  const segmentEnd = segment.startBeat + segment.durationBeats;
+  if (session.cursorBeat + duration > segmentEnd + 1e-9) {
+    return {
+      ...session,
+      notice: `That ${duration === 1 ? "quarter" : "eighth"} would continue past ${segment.chord.label}. Nothing was added.`,
+    };
+  }
+  if (!leadFits(session, session.cursorBeat, duration)) {
+    return { ...session, notice: "That note would pass the end of the song." };
+  }
+  const allocated = allocateLeadId(session);
+  const id = allocated.id;
+  const event: LeadEvent = note
+    ? { kind: "note", id, startBeat: session.cursorBeat, durationBeats: duration, note }
+    : { kind: "rest", id, startBeat: session.cursorBeat, durationBeats: duration };
+  return remember(
+    { ...allocated.session, cursorBeat: session.cursorBeat + duration, selectedLeadId: id },
+    { rhythm: session.arrangement.rhythm, lead: [...session.arrangement.lead, event] },
+    note
+      ? `Inserted a note in ${segment.chord.label} at ${formatInsertion(event.startBeat)}.`
+      : `Inserted a rest in ${segment.chord.label} at ${formatInsertion(event.startBeat)}.`,
+  );
+}
+
+export function selectLead(session: Session, id: string | null): Session {
+  return { ...session, selectedLeadId: id };
+}
+
+export function replaceSelectedLead(session: Session, note: PlacedNote): Session {
+  const selected = session.arrangement.lead.find((event) => event.id === session.selectedLeadId);
+  if (!selected) return insertLead(session, note);
+  const lead = session.arrangement.lead.map((event) =>
+    event.id === selected.id ? { kind: "note" as const, id: event.id, startBeat: event.startBeat, durationBeats: event.durationBeats, note } : event,
+  );
+  return remember(session, { rhythm: session.arrangement.rhythm, lead }, "Replaced the selected note.");
+}
+
+export function deleteSelectedLead(session: Session): Session {
+  if (!session.selectedLeadId) return { ...session, notice: "Select a lead event first." };
+  const lead = session.arrangement.lead.filter((event) => event.id !== session.selectedLeadId);
+  if (lead.length === session.arrangement.lead.length) return { ...session, notice: "That lead event is already gone." };
+  return remember(
+    { ...session, selectedLeadId: null },
+    { rhythm: session.arrangement.rhythm, lead },
+    "Deleted the lead event.",
+  );
+}
+
+export function undo(session: Session): Session {
+  const previous = session.undo[session.undo.length - 1];
+  if (!previous) return { ...session, notice: "Nothing to undo." };
+  return {
+    ...session,
+    arrangement: previous,
+    undo: session.undo.slice(0, -1),
+    redo: [...session.redo, session.arrangement],
+    selectedLeadId: null,
+    notice: "Undone.",
+  };
+}
+
+export function redo(session: Session): Session {
+  const next = session.redo[session.redo.length - 1];
+  if (!next) return { ...session, notice: "Nothing to redo." };
+  return {
+    ...session,
+    arrangement: next,
+    redo: session.redo.slice(0, -1),
+    undo: [...session.undo, session.arrangement],
+    selectedLeadId: null,
+    notice: "Redone.",
+  };
+}
+
+export function savedRhythm(session: Session): RhythmEvent | null {
+  const segment = displayedSegment(session);
+  return session.arrangement.rhythm.find((event) => event.segmentId === segment.id) ?? null;
+}
+
+export function leadInSegment(session: Session): LeadEvent[] {
+  const segment = displayedSegment(session);
+  const end = segment.startBeat + segment.durationBeats;
+  return session.arrangement.lead.filter((event) => event.startBeat >= segment.startBeat && event.startBeat < end);
+}
+
+export function boardMarks(session: Session): Record<string, "draft" | "yours"> {
+  const marks: Record<string, "draft" | "yours"> = {};
+  const showSaved = session.workspace === "compare" ? session.compareView === "yours" : session.workspace === "yours" && session.yoursMode !== "explore";
+  if (showSaved) {
+    for (const note of savedRhythm(session)?.notes ?? []) marks[`${note.stringIndex}-${note.fret}`] = "yours";
+    for (const event of leadInSegment(session)) {
+      if (event.kind === "note") marks[`${event.note.stringIndex}-${event.note.fret}`] = "yours";
+    }
+  }
+  if (session.workspace === "yours" && session.yoursMode === "rhythm") {
+    for (const choice of session.draft) {
+      if (choice.kind === "sounding") marks[`${choice.stringIndex}-${choice.fret}`] = "draft";
+    }
+  }
+  return marks;
+}

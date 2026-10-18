@@ -1,0 +1,9 @@
+node_modules
+.expo
+android
+ios
+dist
+*.jks
+*.log
+evidence/generated
+npm-debug.log*

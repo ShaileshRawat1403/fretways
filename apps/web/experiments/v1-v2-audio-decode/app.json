@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "V1 Audio Decode Harness",
+    "slug": "v1-audio-decode-harness",
+    "version": "0.0.1",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "plugins": [
+      [
+        "react-native-audio-api",
+        {
+          "disableFFmpeg": true,
+          "disableStaticExternalLibs": true,
+          "iosBackgroundMode": false,
+          "androidForegroundService": false,
+          "androidPermissions": []
+        }
+      ]
+    ],
+    "android": {
+      "package": "com.validation.v1audiodecode"
+    },
+    "ios": {
+      "bundleIdentifier": "com.validation.v1audiodecode",
+      "supportsTablet": false
+    }
+  }
+}
