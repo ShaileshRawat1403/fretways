@@ -116,6 +116,24 @@ export function formatBeat(beat: number, length = 16): string {
   return `${Math.floor(safe / 4) + 1}.${Math.floor(safe % 4) + 1}`;
 }
 
+export function formatInsertion(beat: number, length = 16): string {
+  if (beat >= length - 1e-9) return "end";
+  const safe = Math.max(0, beat);
+  const bar = Math.floor(safe / 4 + 1e-9) + 1;
+  const within = safe - (bar - 1) * 4;
+  const nearestHalf = Math.round(within * 2) / 2;
+  const whole = Math.floor(nearestHalf + 1e-9);
+  const beatNumber = whole + 1;
+  if (Math.abs(within - nearestHalf) > 1e-6) return `${bar}.${beatNumber} (${safe.toFixed(2)})`;
+  if (Math.abs(nearestHalf - whole - 0.5) < 1e-6) return `${bar}.${beatNumber}½`;
+  return `${bar}.${beatNumber}`;
+}
+
+export function snapToGrid(beat: number, grid: LeadDuration): number {
+  const units = grid === 1 ? 1 : 2;
+  return Math.floor(beat * units + 1e-6) / units;
+}
+
 function bump(session: Session): Session {
   return { ...session, transportEpoch: session.transportEpoch + 1 };
 }
@@ -297,7 +315,7 @@ export function placeCursor(session: Session, beat: number): Session {
   return {
     ...session,
     cursorBeat: next,
-    notice: `${segment.chord.label} is selected · insertion ${formatBeat(next, length)}.`,
+    notice: `${segment.chord.label} is selected · insertion ${formatInsertion(next, length)}.`,
   };
 }
 
@@ -307,12 +325,18 @@ export function placeCursorAtSection(session: Session): Session {
 }
 
 export function placeCursorAtPlayhead(session: Session): Session {
-  return placeCursor(session, Math.min(session.beat, songLength(session)));
+  const snapped = snapToGrid(Math.min(session.beat, songLength(session)), session.leadDuration);
+  return placeCursor(session, snapped);
+}
+
+export function setLeadDuration(session: Session, leadDuration: LeadDuration): Session {
+  return placeCursor({ ...session, leadDuration }, snapToGrid(session.cursorBeat, leadDuration));
 }
 
 export function stepCursor(session: Session, direction: -1 | 1): Session {
   const segment = displayedSegment(session);
-  const next = session.cursorBeat + direction * session.leadDuration;
+  const grid = session.leadDuration;
+  const next = snapToGrid(session.cursorBeat, grid) + direction * grid;
   const end = segment.startBeat + segment.durationBeats;
   if (next < segment.startBeat || next >= end) {
     return { ...session, notice: `Insertion stays inside ${segment.chord.label}.` };
@@ -346,10 +370,17 @@ export function insertLead(session: Session, note: PlacedNote | null): Session {
   if (!cursorInsideDisplayed(session)) {
     return {
       ...session,
-      notice: `${segment.chord.label} is selected, but insertion is at ${formatBeat(session.cursorBeat)}. Place the cursor in this section.`,
+      notice: `${segment.chord.label} is selected, but insertion is at ${formatInsertion(session.cursorBeat)}. Place the cursor in this section.`,
     };
   }
   const duration = session.leadDuration;
+  const segmentEnd = segment.startBeat + segment.durationBeats;
+  if (session.cursorBeat + duration > segmentEnd + 1e-9) {
+    return {
+      ...session,
+      notice: `That ${duration === 1 ? "quarter" : "eighth"} would continue past ${segment.chord.label}. Nothing was added.`,
+    };
+  }
   if (!leadFits(session, session.cursorBeat, duration)) {
     return { ...session, notice: "That note would pass the end of the song." };
   }
@@ -362,8 +393,8 @@ export function insertLead(session: Session, note: PlacedNote | null): Session {
     { ...allocated.session, cursorBeat: session.cursorBeat + duration, selectedLeadId: id },
     { rhythm: session.arrangement.rhythm, lead: [...session.arrangement.lead, event] },
     note
-      ? `Inserted a note in ${segment.chord.label} at ${formatBeat(event.startBeat)}.`
-      : `Inserted a rest in ${segment.chord.label} at ${formatBeat(event.startBeat)}.`,
+      ? `Inserted a note in ${segment.chord.label} at ${formatInsertion(event.startBeat)}.`
+      : `Inserted a rest in ${segment.chord.label} at ${formatInsertion(event.startBeat)}.`,
   );
 }
 

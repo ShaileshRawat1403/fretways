@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { prototypeTimeline } from "../../../packages/music/src/index";
-import { acceptSchedule, assignStartTimes, auditionVoices, beatAtContextTime, planArrangement, planReferenceProgression, planReferenceWindow } from "../src/audio/plan";
+import { acceptSchedule, assignStartTimes, auditionVoices, beatAtContextTime, placeWindowOnOrigin, planArrangement, planReferenceProgression, planReferenceWindow, TRANSPORT_HORIZON_BEATS } from "../src/audio/plan";
 import { cellAt } from "../src/neck";
 import { commitDraft, createSession, insertLead, placePlayhead, savedRhythm, setDraftFret, setHarmonyChoice } from "../src/session";
 
@@ -79,5 +79,43 @@ describe("audio plans", () => {
     assert.equal(wrapped.filter((voice) => voice.eventId.startsWith("c-major")).length, 3);
     assert.equal(planReferenceWindow(timeline, 14, 14, 18, false).filter((voice) => voice.eventId.startsWith("c-major")).length, 0);
     assert.equal(beatAtContextTime(4, 10, 12, 90), 7);
+    const audible = 10.05;
+    assert.equal(beatAtContextTime(0, audible, audible, 90), 0);
+    assert.notEqual(beatAtContextTime(0, 10, audible, 90), 0);
+  });
+
+  it("keeps C, G, Am, and F on one origin through repeated loops", () => {
+    const timeline = prototypeTimeline();
+    const bpm = timeline.bpm;
+    const scale = 60 / bpm;
+    const origin = { beat: 0, contextTime: 20 };
+    const cycles = 10;
+    const placed: Array<ReturnType<typeof placeWindowOnOrigin>[number]> = [];
+    for (let from = 0; from < cycles * 16; from += TRANSPORT_HORIZON_BEATS) {
+      const nowBeat = from === 0 ? 0 : from - 1;
+      const window = planReferenceWindow(timeline, nowBeat, from, from + TRANSPORT_HORIZON_BEATS, true);
+      placed.push(...placeWindowOnOrigin(window, origin, nowBeat, bpm));
+    }
+    const seen = new Set<string>();
+    for (const voice of placed) {
+      const key = `${voice.eventId}|${voice.midi}|${voice.musicalBeat}`;
+      assert.equal(seen.has(key), false);
+      seen.add(key);
+    }
+    const chords = ["c-major", "g-major", "a-minor", "f-major"];
+    for (const beat of [0, 4, 8, 12, 16, 20, 32, 16 * 9]) {
+      const chord = chords[(beat % 16) / 4];
+      const found = placed.find((item) => item.eventId.startsWith(chord) && Math.abs(item.musicalBeat - beat) < 1e-9);
+      assert.ok(found);
+      assert.ok(Math.abs(found.startAtContextTime - (origin.contextTime + beat * scale)) < 1e-9);
+    }
+    const firstC = placed.find((item) => item.musicalBeat === 0 && item.eventId.startsWith("c-major"));
+    const firstG = placed.find((item) => item.musicalBeat === 4 && item.eventId.startsWith("g-major"));
+    const loopC = placed.find((item) => item.musicalBeat === 16 && item.eventId.startsWith("c-major"));
+    const lastF = placed.find((item) => item.musicalBeat === 12 && item.eventId.startsWith("f-major"));
+    assert.ok(firstC && firstG && loopC && lastF);
+    assert.ok(Math.abs(firstG.startAtContextTime - firstC.startAtContextTime - 4 * scale) < 1e-9);
+    assert.ok(Math.abs(lastF.startAtContextTime + 4 * scale - loopC.startAtContextTime) < 1e-9);
+    assert.ok(Math.abs(firstG.startAtContextTime - firstC.startAtContextTime - 4 * scale - 0.05) > 1e-6);
   });
 });

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { PanResponder, Platform, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from "react-native";
 
 import { noteName } from "../../packages/music/src/index";
-import { playPlans, extendPlans, readAudioTime, stopAudio } from "./src/audio/engine";
+import { beginTransport, extendTransport, playPlans, readAudioTime, stopAudio } from "./src/audio/engine";
 import { auditionVoices, beatAtContextTime, planArrangement, planReferenceWindow, planVoices, TRANSPORT_HORIZON_BEATS, type ChordId } from "./src/audio/plan";
 import { NeckBoard } from "./src/NeckBoard";
 import { chordTitle, displayStrings, openStringLabel, positionJumps, visibleFrets, visibleNeck, type NeckCell } from "./src/neck";
@@ -17,6 +17,7 @@ import {
   draftMaterial,
   exploreNotice,
   formatBeat,
+  formatInsertion,
   insertLead,
   leadInSegment,
   moveNeck,
@@ -35,6 +36,7 @@ import {
   setCompareView,
   setDraftFret,
   setHarmonyChoice,
+  setLeadDuration,
   setLoop,
   setWorkspace,
   setYoursMode,
@@ -99,21 +101,25 @@ export default function App() {
     const timeline = session.timeline;
     const length = songLength(session);
     let cancel = false;
-    let anchorContext: number | null = null;
+    let origin: { beat: number; contextTime: number } | null = null;
     let scheduledUntil = startBeat;
     let extending = false;
     void (async () => {
-      const scheduled = await playPlans("transport", planReferenceWindow(timeline, startBeat, startBeat, startBeat + TRANSPORT_HORIZON_BEATS, loop));
-      if (cancel) return;
-      anchorContext = scheduled[0]?.contextTimeAtSchedule ?? await readAudioTime();
+      const begun = await beginTransport(
+        planReferenceWindow(timeline, startBeat, startBeat, startBeat + TRANSPORT_HORIZON_BEATS, loop),
+        startBeat,
+        bpm,
+      );
+      if (cancel || !begun) return;
+      origin = begun.origin;
       scheduledUntil = startBeat + TRANSPORT_HORIZON_BEATS;
     })();
     const timer = setInterval(() => {
       void (async () => {
-        if (cancel || anchorContext == null) return;
+        if (cancel || origin == null) return;
         const now = await readAudioTime();
         if (now == null) return;
-        const unwrapped = beatAtContextTime(startBeat, anchorContext, now, bpm);
+        const unwrapped = beatAtContextTime(origin.beat, origin.contextTime, now, bpm);
         if (!loop && unwrapped >= length) {
           setSession((current) => current.transportEpoch === epoch ? { ...current, beat: length, playing: false, notice: "End of the progression." } : current);
           return;
@@ -126,7 +132,12 @@ export default function App() {
         const from = scheduledUntil;
         const currentBeat = unwrapped;
         scheduledUntil += TRANSPORT_HORIZON_BEATS;
-        await extendPlans("transport", planReferenceWindow(timeline, currentBeat, from, from + TRANSPORT_HORIZON_BEATS, loop));
+        await extendTransport(
+          planReferenceWindow(timeline, currentBeat, from, from + TRANSPORT_HORIZON_BEATS, loop),
+          origin,
+          currentBeat,
+          bpm,
+        );
         extending = false;
       })();
     }, 80);
@@ -299,13 +310,13 @@ export default function App() {
         ) : null}
         {session.workspace === "yours" && session.yoursMode === "lead" ? (
           <View style={styles.tray}>
-            <Text style={styles.meta}>{displayedSegment(session).chord.label} selected · insertion {formatBeat(session.cursorBeat, songLength(session))} · {session.leadDuration === 1 ? "quarter" : "eighth"}</Text>
+            <Text style={styles.meta}>{displayedSegment(session).chord.label} selected · insertion {formatInsertion(session.cursorBeat, songLength(session))} · {session.leadDuration === 1 ? "quarter" : "eighth"}</Text>
             <View style={styles.row}>
               <Pressable onPress={() => setSession((current) => placeCursorAtSection(current))} style={styles.chip}><Text style={styles.chipText}>At chord</Text></Pressable>
               <Pressable onPress={() => setSession((current) => placeCursorAtPlayhead(current))} style={styles.chip}><Text style={styles.chipText}>At playhead</Text></Pressable>
               <Pressable onPress={() => setSession((current) => stepCursor(current, -1))} style={styles.chip}><Text style={styles.chipText}>Back</Text></Pressable>
               <Pressable onPress={() => setSession((current) => stepCursor(current, 1))} style={styles.chip}><Text style={styles.chipText}>Forward</Text></Pressable>
-              <Pressable onPress={() => setSession((current) => ({ ...current, leadDuration: current.leadDuration === 1 ? 0.5 : 1 }))} style={styles.chip}><Text style={styles.chipText}>Duration</Text></Pressable>
+              <Pressable onPress={() => setSession((current) => setLeadDuration(current, current.leadDuration === 1 ? 0.5 : 1))} style={styles.chip}><Text style={styles.chipText}>Duration</Text></Pressable>
               <Pressable onPress={() => setSession((current) => insertLead(current, null))} style={styles.chip}><Text style={styles.chipText}>Rest</Text></Pressable>
               <Pressable onPress={() => setReplaceArmed(true)} style={[styles.chip, replaceArmed && styles.chipOn]}><Text style={styles.chipText}>Replace</Text></Pressable>
               <Pressable onPress={() => setSession((current) => deleteSelectedLead(current))} style={styles.chip}><Text style={styles.chipText}>Delete</Text></Pressable>

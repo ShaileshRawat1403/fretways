@@ -13,12 +13,15 @@ import {
   displayedSegment,
   exploreNotice,
   formatBeat,
+  formatInsertion,
   insertLead,
   leadInSegment,
   moveNeck,
   nextLeadSerial,
   pause,
   placePlayhead,
+  placeCursor,
+  placeCursorAtPlayhead,
   play,
   redo,
   removeRhythm,
@@ -28,8 +31,10 @@ import {
   selectSegment,
   setDraftFret,
   setHarmonyChoice,
+  setLeadDuration,
   setLoop,
   setYoursMode,
+  stepCursor,
   undo,
 } from "../src/session";
 
@@ -164,6 +169,42 @@ describe("lead editing", () => {
     const blocked = insertLead(session, note(5, 0));
     assert.equal(blocked.arrangement.lead.length, 2);
     assert.match(blocked.notice, /Place the cursor/);
+  });
+
+  it("snaps the insertion cursor to the quarter or eighth grid without following transport", () => {
+    let session = setYoursMode(selectSegment(createSession(timeline), "g-major"), "lead");
+    const parked = session.cursorBeat;
+    session = placePlayhead(session, 4.6);
+    assert.equal(session.cursorBeat, parked);
+    const quarter = placeCursorAtPlayhead(session);
+    assert.equal(quarter.cursorBeat, 4);
+    assert.equal(quarter.beat, 4.6);
+    const eighth = placeCursorAtPlayhead(setLeadDuration(session, 0.5));
+    assert.equal(eighth.cursorBeat, 4.5);
+    assert.equal(stepCursor(eighth, 1).cursorBeat, 5);
+    assert.equal(stepCursor(stepCursor(eighth, 1), -1).cursorBeat, 4.5);
+    assert.equal(formatInsertion(4), "2.1");
+    assert.equal(formatInsertion(7.5), "2.4½");
+  });
+
+  it("rejects a note or rest that would leave the selected chord", () => {
+    let session = setYoursMode(selectSegment(createSession(timeline), "g-major"), "lead");
+    session = insertLead(session, note(4, 0));
+    assert.equal(session.arrangement.lead[0].startBeat, 4);
+    session = insertLead(placeCursor(session, 6), null);
+    assert.equal(session.arrangement.lead[1].kind, "rest");
+    assert.equal(session.arrangement.lead[1].startBeat, 6);
+    session = insertLead(placeCursor(session, 7), note(5, 0));
+    assert.equal(session.arrangement.lead[2].startBeat, 7);
+    assert.equal(session.arrangement.lead[2].durationBeats, 1);
+    const saved = session.arrangement.lead.length;
+    const crossing = insertLead({ ...session, cursorBeat: 7.5, leadDuration: 1 }, null);
+    assert.equal(crossing.arrangement.lead.length, saved);
+    assert.match(crossing.notice, /continue past G/);
+    const ending = insertLead({ ...session, cursorBeat: 7.5, leadDuration: 0.5 }, null);
+    assert.equal(ending.arrangement.lead.at(-1)?.startBeat, 7.5);
+    assert.equal(ending.arrangement.lead.at(-1)?.durationBeats, 0.5);
+    assert.equal(ending.arrangement.lead.at(-1)?.kind, "rest");
   });
 });
 

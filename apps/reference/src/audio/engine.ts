@@ -1,6 +1,6 @@
 import { AudioContext } from "react-native-audio-api";
 
-import { acceptSchedule, assignStartTimes, CONTEXT_LEAD_SECONDS, SAMPLE_RATE, type VoicePlan } from "./plan";
+import { acceptSchedule, assignStartTimes, CONTEXT_LEAD_SECONDS, placeWindowOnOrigin, SAMPLE_RATE, type TransportOrigin, type VoicePlan } from "./plan";
 
 type LiveContext = {
   currentTime: number;
@@ -70,6 +70,60 @@ export function stopAudio(group?: Group) {
   stopAudio("tap");
 }
 
+async function prepare(context: LiveContext, plans: VoicePlan[], ticket: number, group: Group) {
+  if (!acceptSchedule(ticket, tickets[group]) || plans.length === 0) return [];
+  const sampleRate = context.sampleRate || SAMPLE_RATE;
+  const prepared = plans.map((plan) => {
+    const samples = tone(plan.hz, plan.amplitude, plan.durationSeconds, sampleRate);
+    const buffer = context.createBuffer(1, samples.length, sampleRate);
+    buffer.copyToChannel(samples, 0);
+    const source = context.createBufferSource();
+    source.buffer = buffer;
+    source.connect(context.destination);
+    return source;
+  });
+  if (!acceptSchedule(ticket, tickets[group])) return [];
+  return prepared;
+}
+
+export async function beginTransport(plans: VoicePlan[], originBeat: number, bpm: number) {
+  const ticket = tickets.transport + 1;
+  tickets.transport = ticket;
+  stopGroup("transport");
+  const context = await audioContext();
+  if (!acceptSchedule(ticket, tickets.transport)) return null;
+  const prepared = await prepare(context, plans, ticket, "transport");
+  if (!acceptSchedule(ticket, tickets.transport)) return null;
+  const origin: TransportOrigin = { beat: originBeat, contextTime: context.currentTime + CONTEXT_LEAD_SECONDS };
+  const timed = placeWindowOnOrigin(plans, origin, originBeat, bpm);
+  timed.forEach((plan, index) => {
+    prepared[index]?.start(plan.startAtContextTime);
+    if (prepared[index]) active.transport.push(prepared[index]);
+  });
+  return {
+    origin,
+    voices: timed.map((plan) => ({
+      ...plan,
+      acousticLatencyMs: null as null,
+      acousticNote: "Not measured. Scheduled times are not speaker latency." as const,
+    })),
+  };
+}
+
+export async function extendTransport(plans: VoicePlan[], origin: TransportOrigin, windowNowBeat: number, bpm: number) {
+  const ticket = tickets.transport;
+  const context = await audioContext();
+  if (!acceptSchedule(ticket, tickets.transport)) return [];
+  const prepared = await prepare(context, plans, ticket, "transport");
+  if (!acceptSchedule(ticket, tickets.transport)) return [];
+  const timed = placeWindowOnOrigin(plans, origin, windowNowBeat, bpm);
+  timed.forEach((plan, index) => {
+    prepared[index]?.start(plan.startAtContextTime);
+    if (prepared[index]) active.transport.push(prepared[index]);
+  });
+  return timed;
+}
+
 async function schedule(group: Group, plans: VoicePlan[], replace: boolean) {
   const ticket = replace ? tickets[group] + 1 : tickets[group];
   if (replace) tickets[group] = ticket;
@@ -103,8 +157,4 @@ async function schedule(group: Group, plans: VoicePlan[], replace: boolean) {
 
 export function playPlans(group: Group, plans: VoicePlan[]) {
   return schedule(group, plans, true);
-}
-
-export function extendPlans(group: Group, plans: VoicePlan[]) {
-  return schedule(group, plans, false);
 }

@@ -27,6 +27,7 @@ export type VoicePlan = {
   amplitude: number;
   startOffsetSeconds: number;
   durationSeconds: number;
+  musicalBeat?: number;
 };
 
 const gestureAmplitude = 0.12;
@@ -67,6 +68,7 @@ function voice(input: {
   amplitude: number;
   startOffsetSeconds: number;
   durationSeconds: number;
+  musicalBeat?: number;
 }): VoicePlan {
   return {
     voiceId: `${input.idPrefix}-${input.origin}-${input.index}`,
@@ -80,6 +82,7 @@ function voice(input: {
     amplitude: input.amplitude,
     startOffsetSeconds: input.startOffsetSeconds,
     durationSeconds: input.durationSeconds,
+    musicalBeat: input.musicalBeat,
   };
 }
 
@@ -128,8 +131,30 @@ export function auditionVoices(note: PlacedNote, mode: AuditionMode, chordId: Ch
 
 export const TRANSPORT_HORIZON_BEATS = 4;
 
+export type TransportOrigin = {
+  beat: number;
+  contextTime: number;
+};
+
 export function beatAtContextTime(anchorBeat: number, anchorContextTime: number, contextNow: number, bpm: number): number {
   return anchorBeat + (contextNow - anchorContextTime) * (bpm / 60);
+}
+
+export function placeWindowOnOrigin(
+  plans: VoicePlan[],
+  origin: TransportOrigin,
+  windowNowBeat: number,
+  bpm: number,
+): Array<VoicePlan & { musicalBeat: number; startAtContextTime: number }> {
+  const scale = secondsPerBeat(bpm);
+  return plans.map((plan) => {
+    const musicalBeat = plan.musicalBeat ?? windowNowBeat + plan.startOffsetSeconds / scale;
+    return {
+      ...plan,
+      musicalBeat,
+      startAtContextTime: origin.contextTime + (musicalBeat - origin.beat) * scale,
+    };
+  });
 }
 
 function clipEvent(startBeat: number, durationBeats: number, fromBeat: number, scale: number): { offset: number; duration: number } | null {
@@ -209,6 +234,7 @@ export function planReferenceWindow(timeline: Timeline, nowBeat: number, rangeSt
           amplitude: referenceAmplitude,
           startOffsetSeconds: Math.max(0, (sliceStart - nowBeat) * scale),
           durationSeconds: (sliceEnd - sliceStart) * scale,
+          musicalBeat: sliceStart,
         }));
       });
     }
