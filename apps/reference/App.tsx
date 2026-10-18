@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PanResponder, Platform, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from "react-native";
 
-import { noteName } from "../../packages/music/src/index";
 import { beginTransport, extendTransport, playPlans, readAudioTime, stopAudio } from "./src/audio/engine";
 import { auditionVoices, beatAtContextTime, planArrangement, planReferenceWindow, planVoices, TRANSPORT_HORIZON_BEATS, type ChordId } from "./src/audio/plan";
 import { NeckBoard } from "./src/NeckBoard";
 import { chordTitle, displayStrings, openStringLabel, positionJumps, visibleFrets, visibleNeck, type NeckCell } from "./src/neck";
+import { focusLeadSlot, leadSlots, playabilityLabel, rhythmRows, songBars } from "./src/overview";
 import { applyProject, parseProject, toProject } from "./src/project";
 import { readProject, writeProject } from "./src/storage";
 import {
@@ -19,19 +19,14 @@ import {
   formatBeat,
   formatInsertion,
   insertLead,
-  leadInSegment,
   moveNeck,
   muteDraftString,
   pause,
-  placeCursorAtPlayhead,
-  placeCursorAtSection,
   play,
   playheadSegment,
   redo,
   removeRhythm,
   replaceSelectedLead,
-  savedRhythm,
-  selectLead,
   selectSegment,
   setCompareView,
   setDraftFret,
@@ -41,7 +36,6 @@ import {
   setWorkspace,
   setYoursMode,
   songLength,
-  stepCursor,
   stop,
   undo,
   type Session,
@@ -58,7 +52,6 @@ function androidTopInset(): number {
 export default function App() {
   const [session, setSession] = useState<Session>(() => createSession());
   const [replaceArmed, setReplaceArmed] = useState(false);
-  const [lastString, setLastString] = useState<NeckCell["stringIndex"] | null>(null);
   const sessionRef = useRef(session);
   sessionRef.current = session;
 
@@ -168,7 +161,6 @@ export default function App() {
 
   async function onTap(cell: NeckCell) {
     const current = sessionRef.current;
-    setLastString(cell.stringIndex);
     const editingRhythm = current.workspace === "yours" && current.yoursMode === "rhythm";
     const editingLead = current.workspace === "yours" && current.yoursMode === "lead";
     if (editingRhythm) {
@@ -215,42 +207,58 @@ export default function App() {
   }
 
   const material = draftMaterial(session);
-  const rhythm = savedRhythm(session);
-  const leads = leadInSegment(session);
+  const bars = songBars(session);
+  const slots = leadSlots(session);
+  const strings = rhythmRows(session);
+  const editingRhythm = session.workspace === "yours" && session.yoursMode === "rhythm";
+  const editingLead = session.workspace === "yours" && session.yoursMode === "lead";
 
   return (
     <View style={styles.screen}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingTop: 12 + androidTopInset() }]}>
-        <Text style={styles.brand}>FretWays</Text>
-        <Text style={styles.kicker}>{chordTitle(chord)} · {session.workspace} · synthesized audio</Text>
-        <View style={styles.row}>
-          {(["reference", "yours", "compare"] as Workspace[]).map((item) => (
-            <Pressable key={item} onPress={() => setSession((current) => setWorkspace(current, item))} style={[styles.chip, session.workspace === item && styles.chipOn]}>
-              <Text style={styles.chipText}>{item}</Text>
-            </Pressable>
-          ))}
+      <ScrollView contentContainerStyle={[styles.content, { paddingTop: 8 + androidTopInset() }]}>
+        <View style={styles.top}>
+          <Text style={styles.brand}>FretWays</Text>
+          <Text style={styles.kicker}>{chordTitle(chord)} · {formatBeat(session.beat, songLength(session))} · {session.harmonyChoice === "follow" ? "Follow" : "Hold"}</Text>
+          <Pressable onPress={() => void save()} style={styles.chip}><Text style={styles.chipText}>Save</Text></Pressable>
         </View>
         <View style={styles.row}>
-          {session.timeline.segments.map((segment) => {
-            const selected = segment.id === chord.id;
-            const here = playhead?.id === segment.id;
+          <Pressable onPress={() => setSession((current) => (current.playing ? pause(current) : play(current)))} style={styles.play}>
+            <Text style={styles.playText}>{session.playing ? "Pause" : "Play"}</Text>
+          </Pressable>
+          <Pressable onPress={() => setSession((current) => stop(current))} style={styles.chip}><Text style={styles.chipText}>Stop</Text></Pressable>
+          <Pressable onPress={() => setSession((current) => setLoop(current, !current.loop))} style={[styles.chip, session.loop && styles.chipOn]}><Text style={styles.chipText}>{session.loop ? "Looping" : "Loop"}</Text></Pressable>
+          <Pressable onPress={() => setSession((current) => setHarmonyChoice(current, current.harmonyChoice === "follow" ? "hold" : "follow"))} style={styles.chip}>
+            <Text style={styles.chipText}>{session.harmonyChoice === "follow" ? "Hold chord" : "Follow song"}</Text>
+          </Pressable>
+        </View>
+        <View style={styles.row}>
+          {bars.map((bar) => {
+            const selected = bar.segmentId === chord.id;
+            const here = playhead?.id === bar.segmentId;
             return (
-              <Pressable key={segment.id} onPress={() => setSession((current) => selectSegment(current, segment.id))} style={[styles.chord, selected && styles.chordOn]}>
-                <Text style={[styles.chordText, selected && styles.chordTextOn]}>{segment.chord.label}{here ? " ·" : ""}</Text>
+              <Pressable key={bar.segmentId} onPress={() => setSession((current) => selectSegment(current, bar.segmentId))} style={[styles.chord, selected && styles.chordOn]}>
+                <Text style={[styles.chordText, selected && styles.chordTextOn]}>{bar.label}{here ? " ·" : ""}</Text>
+                <Text style={[styles.chordHint, selected && styles.chordTextOn]}>{bar.hasVoicing ? "voicing" : "—"}{bar.leadCount > 0 ? ` · ${bar.leadCount}` : ""}</Text>
               </Pressable>
             );
           })}
         </View>
         <View style={styles.row}>
-          <Pressable onPress={() => setSession((current) => play(current))} style={styles.chip}><Text style={styles.chipText}>Play</Text></Pressable>
-          <Pressable onPress={() => setSession((current) => pause(current))} style={styles.chip}><Text style={styles.chipText}>Pause</Text></Pressable>
-          <Pressable onPress={() => setSession((current) => stop(current))} style={styles.chip}><Text style={styles.chipText}>Stop</Text></Pressable>
-          <Text style={styles.meta}>{formatBeat(session.beat, songLength(session))}</Text>
-          <Pressable onPress={() => setSession((current) => setLoop(current, !current.loop))} style={[styles.chip, session.loop && styles.chipOn]}><Text style={styles.chipText}>Loop</Text></Pressable>
-          <Pressable onPress={() => setSession((current) => setHarmonyChoice(current, current.harmonyChoice === "follow" ? "hold" : "follow"))} style={styles.chip}>
-            <Text style={styles.chipText}>{session.harmonyChoice === "follow" ? "Follow" : "Hold"}</Text>
-          </Pressable>
+          {(["reference", "yours", "compare"] as Workspace[]).map((item) => (
+            <Pressable key={item} onPress={() => setSession((current) => setWorkspace(current, item))} style={[styles.chip, styles.grow, session.workspace === item && styles.chipOn]}>
+              <Text style={styles.chipText}>{item === "reference" ? "Reference" : item === "yours" ? "Yours" : "Compare"}</Text>
+            </Pressable>
+          ))}
         </View>
+        {session.workspace === "yours" ? (
+          <View style={styles.row}>
+            {(["explore", "rhythm", "lead"] as YoursMode[]).map((mode) => (
+              <Pressable key={mode} onPress={() => setSession((current) => setYoursMode(current, mode))} style={[styles.chip, styles.grow, session.yoursMode === mode && styles.chipOn]}>
+                <Text style={styles.chipText}>{mode === "explore" ? "Explore" : mode === "rhythm" ? "Rhythm" : "Lead"}</Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
         <View {...pan.panHandlers}>
           <NeckBoard
             frets={frets}
@@ -259,7 +267,7 @@ export default function App() {
             labelMode={session.labelMode}
             selectedKey={null}
             marks={marks}
-            mutedStrings={session.workspace === "yours" && session.yoursMode === "rhythm" ? material.mutedStrings : []}
+            mutedStrings={editingRhythm ? material.mutedStrings : []}
             onTap={(cell) => void onTap(cell)}
           />
         </View>
@@ -271,23 +279,17 @@ export default function App() {
           ))}
           {(["markers", "names", "intervals"] as const).map((mode) => (
             <Pressable key={mode} onPress={() => setSession((current) => ({ ...current, labelMode: mode }))} style={[styles.chip, session.labelMode === mode && styles.chipOn]}>
-              <Text style={styles.chipText}>{mode === "markers" ? "Marks" : mode === "names" ? "Names" : "Intervals"}</Text>
+              <Text style={styles.chipText}>{mode === "markers" ? "Dots" : mode === "names" ? "Names" : "Intervals"}</Text>
             </Pressable>
           ))}
         </View>
-        {session.workspace === "yours" ? (
-          <View style={styles.row}>
-            {(["explore", "rhythm", "lead"] as YoursMode[]).map((mode) => (
-              <Pressable key={mode} onPress={() => setSession((current) => setYoursMode(current, mode))} style={[styles.chip, session.yoursMode === mode && styles.chipOn]}>
-                <Text style={styles.chipText}>{mode}</Text>
-              </Pressable>
-            ))}
-          </View>
-        ) : null}
         {session.workspace === "compare" ? (
-          <View style={styles.row}>
-            <Pressable onPress={() => setSession((current) => setCompareView(current, "reference"))} style={[styles.chip, session.compareView === "reference" && styles.chipOn]}><Text style={styles.chipText}>Map</Text></Pressable>
-            <Pressable onPress={() => setSession((current) => setCompareView(current, "yours"))} style={[styles.chip, session.compareView === "yours" && styles.chipOn]}><Text style={styles.chipText}>Yours</Text></Pressable>
+          <View style={styles.tray}>
+            <View style={styles.row}>
+              <Pressable onPress={() => setSession((current) => setCompareView(current, "reference"))} style={[styles.chip, styles.grow, session.compareView === "reference" && styles.chipOn]}><Text style={styles.chipText}>Chord map</Text></Pressable>
+              <Pressable onPress={() => setSession((current) => setCompareView(current, "yours"))} style={[styles.chip, styles.grow, session.compareView === "yours" && styles.chipOn]}><Text style={styles.chipText}>Your part</Text></Pressable>
+            </View>
+            <Text style={styles.meta}>{session.compareView === "reference" ? "Gold, green, and blue are the chord tones." : "Coral rings are the notes you saved."}</Text>
           </View>
         ) : null}
         {session.workspace !== "yours" || session.yoursMode === "explore" ? (
@@ -295,46 +297,50 @@ export default function App() {
             <Pressable onPress={() => setSession((current) => ({ ...current, auditionMode: current.auditionMode === "solo" ? "in-context" : "solo" }))} style={styles.chip}>
               <Text style={styles.chipText}>{session.auditionMode === "solo" ? "Solo" : "With chord"}</Text>
             </Pressable>
+            <Text style={styles.meta}>{session.workspace === "reference" ? "Tap any fret. The map stays read-only." : "Explore does not save."}</Text>
           </View>
         ) : null}
-        {session.workspace === "yours" && session.yoursMode === "rhythm" ? (
+        {editingRhythm ? (
           <View style={styles.tray}>
-            <Text style={styles.meta}>{material.notes.length} notes · {material.mutedStrings.length} muted · {material.playability}{rhythm ? " · saved" : ""}</Text>
             <View style={styles.row}>
-              <Pressable onPress={() => lastString != null && setSession((current) => muteDraftString(current, lastString))} style={styles.chip}><Text style={styles.chipText}>Mute</Text></Pressable>
-              <Pressable onPress={() => void playPlans("tap", planVoices({ gesture: material.notes, mode: session.auditionMode, chordId: chord.id as ChordId, idPrefix: "draft" }))} style={styles.chip}><Text style={styles.chipText}>Hear</Text></Pressable>
-              <Pressable onPress={() => setSession((current) => commitDraft(current))} style={styles.chip}><Text style={styles.chipText}>Use on chord</Text></Pressable>
+              {strings.map((row) => (
+                <Pressable key={row.stringIndex} onPress={() => setSession((current) => muteDraftString(current, row.stringIndex))} style={styles.stringChip}>
+                  <Text style={styles.chipText}>{row.label}</Text>
+                  <Text style={styles.meta}>{row.state}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <Text style={styles.meta}>{playabilityLabel(material.playability, material.notes.length)} Tap a string letter to mute it.</Text>
+            <View style={styles.row}>
+              <Pressable onPress={() => void playPlans("tap", planVoices({ gesture: material.notes, mode: session.auditionMode, chordId: chord.id as ChordId, idPrefix: "draft" }))} style={styles.chip}><Text style={styles.chipText}>Hear shape</Text></Pressable>
+              <Pressable onPress={() => setSession((current) => commitDraft(current))} style={styles.chip}><Text style={styles.chipText}>Use on {chord.label}</Text></Pressable>
               <Pressable onPress={() => setSession((current) => removeRhythm(current))} style={styles.chip}><Text style={styles.chipText}>Remove</Text></Pressable>
             </View>
           </View>
         ) : null}
-        {session.workspace === "yours" && session.yoursMode === "lead" ? (
+        {editingLead ? (
           <View style={styles.tray}>
-            <Text style={styles.meta}>{displayedSegment(session).chord.label} selected · insertion {formatInsertion(session.cursorBeat, songLength(session))} · {session.leadDuration === 1 ? "quarter" : "eighth"}</Text>
+            <Text style={styles.meta}>{chord.label} · insert {formatInsertion(session.cursorBeat, songLength(session))} · {session.leadDuration === 1 ? "quarter" : "eighth"}</Text>
             <View style={styles.row}>
-              <Pressable onPress={() => setSession((current) => placeCursorAtSection(current))} style={styles.chip}><Text style={styles.chipText}>At chord</Text></Pressable>
-              <Pressable onPress={() => setSession((current) => placeCursorAtPlayhead(current))} style={styles.chip}><Text style={styles.chipText}>At playhead</Text></Pressable>
-              <Pressable onPress={() => setSession((current) => stepCursor(current, -1))} style={styles.chip}><Text style={styles.chipText}>Back</Text></Pressable>
-              <Pressable onPress={() => setSession((current) => stepCursor(current, 1))} style={styles.chip}><Text style={styles.chipText}>Forward</Text></Pressable>
-              <Pressable onPress={() => setSession((current) => setLeadDuration(current, current.leadDuration === 1 ? 0.5 : 1))} style={styles.chip}><Text style={styles.chipText}>Duration</Text></Pressable>
-              <Pressable onPress={() => setSession((current) => insertLead(current, null))} style={styles.chip}><Text style={styles.chipText}>Rest</Text></Pressable>
-              <Pressable onPress={() => setReplaceArmed(true)} style={[styles.chip, replaceArmed && styles.chipOn]}><Text style={styles.chipText}>Replace</Text></Pressable>
-              <Pressable onPress={() => setSession((current) => deleteSelectedLead(current))} style={styles.chip}><Text style={styles.chipText}>Delete</Text></Pressable>
-              <Pressable onPress={() => setSession((current) => undo(current))} style={styles.chip}><Text style={styles.chipText}>Undo</Text></Pressable>
-              <Pressable onPress={() => setSession((current) => redo(current))} style={styles.chip}><Text style={styles.chipText}>Redo</Text></Pressable>
+              {slots.map((slot) => (
+                <Pressable key={slot.beat} onPress={() => setSession((current) => focusLeadSlot(current, slot.beat))} style={[styles.slot, Math.abs(session.cursorBeat - slot.beat) < 1e-6 && styles.chipOn, slot.kind === "note" && styles.slotNote]}>
+                  <Text style={styles.slotBeat}>{slot.label}</Text>
+                  <Text style={styles.slotCaption}>{slot.caption}</Text>
+                </Pressable>
+              ))}
             </View>
-            {leads.map((event) => (
-              <Pressable key={event.id} onPress={() => setSession((current) => selectLead(current, event.id))} style={[styles.chip, session.selectedLeadId === event.id && styles.chipOn]}>
-                <Text style={styles.chipText}>{formatBeat(event.startBeat)} {event.kind === "note" ? noteName(event.note.midi) : "rest"}</Text>
-              </Pressable>
-            ))}
+            <View style={styles.row}>
+              <Pressable onPress={() => setSession((current) => setLeadDuration(current, current.leadDuration === 1 ? 0.5 : 1))} style={styles.chip}><Text style={styles.chipText}>{session.leadDuration === 1 ? "Quarter" : "Eighth"}</Text></Pressable>
+              <Pressable onPress={() => setSession((current) => insertLead(current, null))} style={styles.chip}><Text style={styles.chipText}>Rest</Text></Pressable>
+              <Pressable onPress={() => setReplaceArmed(true)} style={[styles.chip, replaceArmed && styles.chipOn]}><Text style={styles.chipText}>{replaceArmed ? "Tap a fret" : "Replace"}</Text></Pressable>
+              <Pressable onPress={() => setSession((current) => deleteSelectedLead(current))} style={styles.chip}><Text style={styles.chipText}>Delete</Text></Pressable>
+            </View>
           </View>
         ) : null}
         <View style={styles.row}>
           <Pressable onPress={() => { const current = sessionRef.current; setSession(pause(current)); void playPlans("tap", planArrangement(current.arrangement, current.timeline, current.beat)); }} style={styles.chip}><Text style={styles.chipText}>Hear yours</Text></Pressable>
           <Pressable onPress={() => setSession((current) => undo(current))} style={styles.chip}><Text style={styles.chipText}>Undo</Text></Pressable>
           <Pressable onPress={() => setSession((current) => redo(current))} style={styles.chip}><Text style={styles.chipText}>Redo</Text></Pressable>
-          <Pressable onPress={() => void save()} style={styles.chip}><Text style={styles.chipText}>Save</Text></Pressable>
           <Pressable onPress={() => void reopen()} style={styles.chip}><Text style={styles.chipText}>Open</Text></Pressable>
         </View>
         <Text style={styles.status}>{session.notice}</Text>
@@ -345,18 +351,28 @@ export default function App() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#1c1915" },
-  content: { paddingHorizontal: 16, paddingBottom: 28, gap: 10 },
-  brand: { color: "#f3efe6", fontSize: 22, fontWeight: "700" },
-  kicker: { color: "#c4b8a5", fontSize: 13, marginTop: -6 },
-  row: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
-  tray: { gap: 8 },
-  chord: { flex: 1, minHeight: 44, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "#2a2420" },
+  content: { paddingHorizontal: 12, paddingBottom: 24, gap: 8 },
+  top: { flexDirection: "row", alignItems: "center", gap: 8 },
+  brand: { color: "#f3efe6", fontSize: 20, fontWeight: "700" },
+  kicker: { color: "#c4b8a5", fontSize: 13, flex: 1 },
+  row: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" },
+  tray: { gap: 6 },
+  grow: { flex: 1, alignItems: "center" },
+  play: { minHeight: 40, paddingHorizontal: 14, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: "#e2b657" },
+  playText: { color: "#1c1915", fontSize: 15, fontWeight: "700" },
+  chord: { flex: 1, minHeight: 48, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "#2a2420" },
   chordOn: { backgroundColor: "#e2b657" },
   chordText: { color: "#f3efe6", fontSize: 16, fontWeight: "700" },
+  chordHint: { color: "#c4b8a5", fontSize: 10 },
   chordTextOn: { color: "#1c1915" },
   chip: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 10, backgroundColor: "#2a2420" },
   chipOn: { backgroundColor: "#3f4f46" },
   chipText: { color: "#f3efe6", fontSize: 14 },
-  meta: { color: "#c4b8a5", fontSize: 13 },
+  meta: { color: "#c4b8a5", fontSize: 13, flexShrink: 1 },
+  stringChip: { width: 48, minHeight: 44, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: "#2a2420" },
+  slot: { width: 36, minHeight: 42, borderRadius: 8, alignItems: "center", justifyContent: "center", backgroundColor: "#2a2420" },
+  slotNote: { backgroundColor: "#5c3a32" },
+  slotBeat: { color: "#c4b8a5", fontSize: 10 },
+  slotCaption: { color: "#f3efe6", fontSize: 12, fontWeight: "700" },
   status: { color: "#f3efe6", fontSize: 15 },
 });

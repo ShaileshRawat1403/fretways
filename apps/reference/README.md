@@ -8,7 +8,7 @@ Reference playback and Hear yours are synthesized. They are not the original rec
 
 Play schedules about one bar ahead on a single audio-context origin. Later bars use that same origin, so a new bar does not add another scheduling delay. The on-screen beat is anchored to the intended audible start, not the earlier moment when the schedule was built. That is still not a measured speaker latency. Pause, Stop, Seek, and Loop replace the transport voices. Fret taps stay on a separate audio group. Looping has no fixed cycle limit.
 
-Entering Lead places the insertion cursor in the selected chord when it is not already there. Quarter notes sit on whole beats and eighth notes on half beats. At playhead snaps to that grid. The cursor then stays put while the playhead moves. A note or rest that would continue into the next chord is refused.
+The phone screen keeps the neck in front. Each bar shows whether a voicing and lead notes are saved. Rhythm lists the six strings, and tapping a string letter mutes it. Lead shows the selected bar as eight slots. Tap a slot to move the insertion cursor. A coral ring is a saved note. Gold, green, and blue remain the chord tones.
 
 The project file is schema 1 JSON: timeline, arrangement, and title. UI state is not stored. Save writes a temporary file, moves the previous project aside, then moves the temporary file into place. If the temporary write fails, the current file stays. If the final move throws, the backup is restored. Open uses the backup when the main file is unreadable. A crash inside the phone's own file move has not been tested. A broken file is rejected and the current session stays in memory.
 
