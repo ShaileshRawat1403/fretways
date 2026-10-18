@@ -2,73 +2,51 @@
 
 **Harness:** FretWays Reference Application (`apps/reference`)  
 **Git Branch:** `feature/phase-1-increment-3-reference`  
-**Required Commit:** `124300c50d7f58187f4361c4f0dcb3fe1633fbe7`  
-**Validation Date:** 2026-10-17  
+**Post-Patch UI Commit:** `dfb2363a4e13686f1776041f98f7a65c81180da2`  
+**Pre-Patch Baseline Commit:** `124300c50d7f58187f4361c4f0dcb3fe1633fbe7`  
+**Validation Date:** 2026-10-17 / 2026-10-18  
 **Target Device:** iQOO Neo 6 (`I2202`, Android 14, API Level 34, `arm64-v8a`)  
 **Validation Status:**
-- Static, Dependency & Build Verification: **PASSED**
-- Fretboard Layout & String Orientation: **PASSED**
+- Static, Dependency & Build Verification: **PASSED (8/8 Reference tests, 13/13 music tests, 0 TS errors)**
+- Status-Bar Inset & Clearance: **PASSED (heading positioned cleanly below clock/battery)**
+- String Row Keys & React Reconciler: **PASSED (zero duplicate key warnings)**
+- Fretboard Layout & String Orientation: **PASSED (High e top, Low E bottom)**
 - Musical Accuracy (G, C, Am, F & Dual B3 Cells): **PASSED**
 - Neck Navigation (Jumps, Swipes & Frets 20–24 Boundary): **PASSED**
-- Label Modes (Marks, Names, Intervals): **PASSED**
+- Chromatic Interval Labels (`R`, `m2`, `M2`, `m3`, `M3`, `P4`, `TT`, `P5`, `m6`, `M6`, `m7`, `M7`): **PASSED**
 - Non-Chord Tone Selection & Audition: **PASSED**
 - Android Audio Graph & Voice Replacement: **PASSED**
 - Usability & Touch Target Sizing: **PASSED**
-- Human Listening: **PENDING (awaiting product owner ear audition)**
+- Human Acoustic Listening: **PENDING (awaiting product owner ear audition)**
+- Guitarist Usability Acceptance: **PENDING (awaiting product owner verification)**
 - Commercial Licensing: **OPEN**
 
 ---
 
 ## 1. Executive Summary
 
-This report documents the independent physical Android validation of the FretWays Phase 1 Increment 3 Reference implementation (`apps/reference`) on an authorized physical iQOO Neo 6 (`I2202`) running Android 14. 
+This report documents the independent physical Android validation of the FretWays Phase 1 Increment 3 Reference implementation (`apps/reference`) on an authorized physical iQOO Neo 6 (`I2202`) running Android 14, covering both the initial reference implementation (`124300c`) and the post-review UI correction (`dfb2363`).
 
 The Reference application successfully realizes the primary visual and harmonic vision of FretWays: an interactive harmonic map of the guitar neck that visualizes chord structures across the entire fretboard (frets 0 through 24) rather than isolated chord fingerings.
 
-### Key Validation Outcomes:
-1. **Static & Build Verification (PASSED):**
-   - 13/13 music-domain unit tests passed (`packages/music`).
-   - 7/7 Reference harness unit tests passed (`apps/reference`).
-   - TypeScript checking completed with **0 errors** (`npm run typecheck`).
-   - Audio decoder flags `disableAudioapiStaticExternalLibs=true` and `disableAudioapiFFmpeg=true` verified via `assert-flags.sh`.
-   - Audio library strictly pinned to `react-native-audio-api@0.13.6`.
-   - Android debug APK assembled cleanly; APK inspected to confirm zero external FFmpeg/codec shared objects.
-2. **Visual Fretboard Layout & Orientation (PASSED):**
-   - High e string (conventional string 1) is rendered at the top; low E string (conventional string 6) is rendered at the bottom.
-   - All 6 strings (e, B, G, D, A, E) are distinctly visible with proportional string widths.
-   - 5 frets are visible in each viewport window with clear fret number captions.
-   - Portrait layout fits the 1080×2400 (20:9) screen comfortably without horizontal or vertical clipping.
-3. **Musical Accuracy & Dual B3 Cell Verification (PASSED):**
-   - For G major on frets 0–4, all eight expected harmonic positions were verified in their correct physical locations and roles:
-     - String 1, fret 3: G4 (Root)
-     - String 2, fret 0: B3 (Third)
-     - String 2, fret 3: D4 (Fifth)
-     - String 3, fret 0: G3 (Root)
-     - String 3, fret 4: B3 (Third)
-     - String 4, fret 0: D3 (Fifth)
-     - String 5, fret 2: B2 (Third)
-     - String 6, fret 3: G2 (Root)
-   - **Dual B3 Unison Preservation:** Open B3 (String 2, fret 0) and G-string fret-4 B3 (String 3, fret 4) remain completely distinct physical fretboard cells while both producing MIDI 59 (246.94 Hz).
-   - Selecting chords C major, A minor, and F major dynamically re-evaluates all fretboard highlights, labels, and roles without regressions.
-4. **Neck Navigation & High-Fret Clamping (PASSED):**
-   - Position jumps (`Open`, `5`, `7`, `12`, `20`) immediately snap the viewport to the designated fret windows.
-   - Position `20` accurately displays frets 20, 21, 22, 23, and 24 (the final fret of a 24-fret neck).
-   - Horizontal swiping shifts the neck incrementally by ±1 fret.
-   - Boundary clamping strictly enforces `firstFret >= 0` and `firstFret <= 20`.
-   - Neck navigation preserves the selected chord and does not trigger accidental note audition.
-5. **Label Modes & Non-Chord Selection (PASSED):**
-   - Switching between `Marks`, `Names`, and `Intervals` updates cell contents accurately across chord tones and non-chord tones.
-   - Selecting non-chord tone E4 (String 1, fret 0) in G major updates the status text to `String 1 · fret 0 · E4 · outside the chord` with an active selection ring.
-6. **Audio Behavior & Engine Stability (PASSED):**
-   - In Solo mode, tapping any cell synthesizes the isolated pitch.
-   - In With chord mode, tapping non-chord E4 plays the E4 gesture pitch alongside the synthesized G major triad reference bed (`[G2, B2, D3]`).
-   - Tapping a chord tone in With chord mode sounds the gesture pitch harmoniously with reference voices.
-   - Switching chord immediately before auditioning reflects the newly selected chord's reference bed.
-   - Rapid consecutive tapping (8 rapid taps on B3 at ~50 ms spacing) exercises `stopAudition()`, halting prior voices before starting the new voice with zero audio underruns, zero clicks, and zero engine crashes.
-7. **Human Listening (PENDING):**
-   - In accordance with validation protocol, automated ADB taps and logcat inspections do not substitute for human acoustic audition. Human listening acceptance is marked **PENDING** until directly auditioned by the product owner.
-8. **Commercial Licensing (OPEN):**
-   - Third-party library compliance remains open for formal production licensing clearance.
+### Post-Patch UI Corrections (Commit `dfb2363`):
+1. **Status-Bar Inset & Header Clearance (RESOLVED):**
+   - Added dynamic status-bar padding via `androidTopInset()` (`paddingTop: 12 + androidTopInset()`) and translucent light-content status bar configuration in `app.json`.
+   - On the physical iQOO Neo 6, the `FretWays` brand heading now begins at Y=108 physical pixels, completely below the Android status bar (clock 07:45, notifications, network speed, battery indicator).
+   - Zero overlap, zero clipping, and zero visual collision with status bar icons.
+2. **String Row Keys & Duplicate Key Warning (RESOLVED):**
+   - Resolved the duplicate key warning in `NeckBoard.tsx` by introducing `stringRowKey(stringIndex)` (`"string-5"`, `"string-4"`, `"string-3"`, `"string-2"`, `"string-1"`, `"string-0"`).
+   - Top high e (string index 5) and bottom low E (string index 0) both retain their visible `"E"` string labels while having distinct, unique React component keys.
+   - Console inspection via Metro and `adb logcat` confirmed complete elimination of the `Encountered two children with the same key, 'E'` warning and associated warning toast.
+3. **Deprecation Cleanup:**
+   - Replaced deprecated React Native `SafeAreaView` with standard `<View style={styles.screen}>` with explicit top inset calculation.
+   - Reference harness unit tests expanded to 8/8 tests, adding `gives each string its own row key, including both E strings`.
+
+### Intervals Mode Correction:
+- **Correction Note:** The initial report draft incorrectly stated that Intervals mode displayed plain `3` and `5` for chord tones and dashes (`-`) for non-chord tones. 
+- **Actual Verified Behavior:** The Reference implementation provides full chromatic interval labeling calculated from the chord root for all twelve chromatic pitch classes: `["R", "m2", "M2", "m3", "M3", "P4", "TT", "P5", "m6", "M6", "m7", "M7"]`.
+- Chord tones display their interval role (`R`, `M3` / `m3`, `P5`) inside colored circular badges (Root = gold, Third = sage green, Fifth = slate blue).
+- Non-chord tones display their specific chromatic interval label (`m2`, `M2`, `m3`, `P4`, `TT`, `m6`, `M6`, `m7`, `M7`) in quiet text directly over the fret wire without badges.
 
 ---
 
@@ -111,17 +89,18 @@ Outcome: **PASS (13/13 tests passed, 0 failures)**
 - Distinct event identity preservation for identical MIDI pitches (2/2)
 - Music arrangement timing, fret consistency, and single-string reuse constraints (4/4)
 
-### 3.2. Reference Harness Unit Tests (7/7 Passed)
+### 3.2. Reference Harness Unit Tests (8/8 Passed)
 Executed command:
 ```sh
 npm test --prefix apps/reference
 ```
-Outcome: **PASS (7/7 tests passed, 0 failures)**
+Outcome: **PASS (8/8 tests passed, 0 failures)**
 - Default initial state: C major, firstFret = 0
 - Move neck bounds: clamps to [0, 20]
 - Select chord: changes chord without resetting neck position
 - Visible neck rows: generates 6 string rows with 5 fret cells each
 - Open string labels: correctly maps [0..5] to ["E", "B", "G", "D", "A", "E"]
+- **Row key uniqueness (new in `dfb2363`):** gives each string its own row key (`string-5`..`string-0`), including both E strings
 - Solo audition plan: single gesture voice, zero reference voices
 - With chord audition plan: 1 gesture voice + 3 chord reference voices
 
@@ -146,8 +125,8 @@ Outcome: **PASS**
 ### 3.5. Native Shared Object Inspection (APK)
 Inspected `apps/reference/android/app/build/outputs/apk/debug/app-debug.apk`:
 - Bundled native libraries under `lib/arm64-v8a/`:
-  - `libreact-native-audio-api.so` (6,252,696 bytes)
-  - `liboboe.so` (296,872 bytes)
+  - `libreact-native-audio-api.so` (6,253,488 bytes)
+  - `liboboe.so` (296,080 bytes)
   - Standard React Native / Hermes runtime libraries (`libhermes.so`, `libreactnative.so`, etc.)
 - Confirmed complete absence of FFmpeg and external decoder shared objects (`libavcodec.so`, `libavformat.so`, `libavutil.so`, `libswresample.so`, `libopus.so`, `libvorbis.so`, `libogg.so`).
 
@@ -155,13 +134,14 @@ Inspected `apps/reference/android/app/build/outputs/apk/debug/app-debug.apk`:
 
 ## 4. Visual Fretboard Layout & Musical Accuracy
 
-### 4.1. Visual Layout Assessment
-Physical observation on the iQOO Neo 6 screen:
-- **String Orientation:** String 1 (High e) is displayed at the top; String 6 (Low E) is at the bottom. This matches the standard player's perspective.
-- **String Visibility:** All six strings (e, B, G, D, A, E) are distinctly visible with horizontal fret wires separating them.
-- **Fret Numbering:** A dedicated fret header row displays fret indices (`open`, `1`, `2`, `3`, `4` when `firstFret = 0`).
+### 4.1. Visual Layout & Inset Assessment
+Physical observation on the iQOO Neo 6 screen post-patch (`dfb2363`):
+- **Status-Bar Clearance:** `FretWays` brand header begins at `Y = 108 px` (previously `Y = 32 px`), providing full clearance below the device status bar.
+- **String Orientation:** String 1 (High e) is displayed at the top; String 6 (Low E) is at the bottom. This matches standard player perspective.
+- **String Visibility:** Both high e and low E strings display `"E"` labels clearly on the left gutter with zero key collisions. All six strings (e, B, G, D, A, E) have distinct line weights.
+- **Fret Numbering:** Dedicated fret header row displays fret indices (`open`, `1`, `2`, `3`, `4` when `firstFret = 0`).
 - **Screen Real Estate:**
-  - Header & Brand: Top 80 dp.
+  - Header & Brand: Padded top area (~110 px).
   - Chord Selector (C, G, Am, F): 46 dp height.
   - Audition Mode Selector (Solo, With chord): 38 dp height.
   - Fretboard Matrix: ~420 dp height (~70 dp per string row).
@@ -222,8 +202,8 @@ The position jump strip provides five direct jumps:
 - `20` (fret 20): Viewport shows frets 20, 21, 22, 23, 24. Status: `... frets 20–24`
 
 ### 5.2. Boundary Clamping
-- Attempting to swipe right at fret 0 does not move `firstFret` below 0 (`firstFret = Math.max(0, firstFret - 1)`).
-- Attempting to swipe left at fret 20 does not move `firstFret` above 20 (`firstFret = Math.min(20, firstFret + 1)`).
+- Swiping right at fret 0 clamps at 0 (`firstFret = Math.max(0, firstFret - 1)`).
+- Swiping left at fret 20 clamps at 20 (`firstFret = Math.min(20, firstFret + 1)`).
 - Fret 24 is rendered cleanly as the final column of the fret 20 viewport.
 
 ### 5.3. Horizontal Swiping
@@ -235,7 +215,7 @@ The position jump strip provides five direct jumps:
 
 ---
 
-## 6. Label Modes & Harmonic Roles
+## 6. Label Modes & Chromatic Intervals
 
 The app supports three label display modes:
 1. **Marks:**
@@ -246,13 +226,38 @@ The app supports three label display modes:
    - Every fret cell displays its pitch name (e.g. `G`, `B`, `D`, `F#`, `C`).
    - Chord tones retain their role-colored circular background.
    - Non-chord cells display neutral text on the dark wood fret background.
-3. **Intervals:**
-   - Chord tones display their harmonic degree: `R` (Root), `3` (Third), `5` (Fifth).
-   - Non-chord cells display neutral dashes (`-`).
+3. **Intervals (Chromatic Interval Labeling):**
+   - Every fret cell displays its exact chromatic interval degree calculated relative to the root of the currently selected chord.
+   - Supported labels encompass all 12 chromatic intervals:
+     - `R` — Root (0 semitones)
+     - `m2` — Minor 2nd (1 semitone)
+     - `M2` — Major 2nd (2 semitones)
+     - `m3` — Minor 3rd (3 semitones)
+     - `M3` — Major 3rd (4 semitones)
+     - `P4` — Perfect 4th (5 semitones)
+     - `TT` — Tritone (6 semitones)
+     - `P5` — Perfect 5th (7 semitones)
+     - `m6` — Minor 6th (8 semitones)
+     - `M6` — Major 6th (9 semitones)
+     - `m7` — Minor 7th (10 semitones)
+     - `M7` — Major 7th (11 semitones)
+   - Chord tones are badged with their role colors: Root (`R`, gold), Third (`M3` or `m3`, sage green), and Fifth (`P5`, slate blue).
+   - Non-chord tones display their chromatic interval (`m2`, `M2`, `P4`, `TT`, `m6`, `M6`, `m7`, `M7`) in quiet text directly over the fret wire without a colored badge.
 
-### 6.1. Non-Chord Tone Selection
+### 6.1. G Major Chromatic Interval Map (Frets 0–4 Verified on Device)
+
+| String | Fret 0 (Open) | Fret 1 | Fret 2 | Fret 3 | Fret 4 |
+|:---:|:---:|:---:|:---:|:---:|:---:|
+| **1 (High e)** | `M6` (E) | `m7` (F) | `M7` (F#) | **`R`** (G, gold) | `m2` (G#) |
+| **2 (B)** | **`M3`** (B, green) | `P4` (C) | `TT` (C#) | **`P5`** (D, blue) | `m6` (D#) |
+| **3 (G)** | **`R`** (G, gold) | `m2` (G#) | `M2` (A) | `m3` (A#) | **`M3`** (B, green) |
+| **4 (D)** | **`P5`** (D, blue) | `m6` (D#) | `M6` (E) | `m7` (F) | `M7` (F#) |
+| **5 (A)** | `M2` (A) | `m3` (A#) | **`M3`** (B, green) | `P4` (C) | `TT` (C#) |
+| **6 (Low E)** | `M6` (E) | `m7` (F) | `M7` (F#) | **`R`** (G, gold) | `m2` (G#) |
+
+### 6.2. Non-Chord Tone Selection
 In G major (`frets 0–4`), String 1 fret 0 (E4) was selected:
-- Musical relationship: E is the 6th degree (13th), not a member of the G major triad (G-B-D).
+- Musical relationship: E is the 6th degree (`M6`), outside the G major triad (G-B-D).
 - Visual feedback: A distinct selection border highlights the cell.
 - Status line feedback: Displays `String 1 · fret 0 · E4 · outside the chord`.
 - Audio feedback: Synthesizes E4 gesture tone + G major reference accompaniment bed `[G2, B2, D3]`.
@@ -282,7 +287,7 @@ I/OboeAudio: AudioStreamAAudio() - Float format, 48000 Hz, burst size: 128 frame
 | Rapid consecutive taps | Solo / With chord | 8 taps on B3 at ~50 ms | `stopAudition()` cancels prior voice, starts new voice | Clean voice replacement, zero audio dropouts, zero crashes |
 
 ### 7.3. Latency & Scheduling Clarification
-In strict accordance with the validation requirements:
+In strict accordance with validation requirements:
 - Internal scheduling measurements (`scheduleInvokedAtMs - requestedAtMs`) reflect only JavaScript execution and Web Audio node dispatch latency.
 - Internal scheduling times do **not** represent acoustic tap-to-speaker latency.
 - Direct acoustic latency remains unmeasured and is recorded as `acousticLatencyMs: null`.
@@ -301,55 +306,70 @@ Physical screen measurements on the 1080×2400 (412×915 dp) iQOO Neo 6:
 - **Label Mode Pills (Marks, Names, Intervals):** Measure **~200 × 100 physical pixels (~76 × 38 dp)**.
 
 ### 8.2. Visual Ergonomics & Readability
+- **Status Bar Integration:** With `androidTopInset()` in place, status indicators and app content are visually decoupled.
 - **Harmonic Role Contrast:** Gold (`#e2b657` Root), Sage Green (`#7eb8a2` Third), and Slate Blue (`#8aa4c8` Fifth) provide excellent contrast against the dark fretboard (`#1c1915`).
 - **Neck Readability:** Fret numbers, string gauges, and nut styling provide clear visual grounding.
 - **Navigation Efficiency:** Position jump buttons (`Open`, `5`, `7`, `12`, `20`) are vastly more practical than repeated swiping for moving across the fretboard. Swiping is well suited for micro-adjusting by 1–2 frets.
 
 ---
 
-## 9. Defects, Warnings & Limitations
+## 9. Defects, Warnings & Resolution Status
 
-### 9.1. Defect: React Non-Unique Key Warning in `NeckBoard.tsx` (Minor Defect)
-- **File:** `apps/reference/src/NeckBoard.tsx`, Line 30
-- **Code:**
-  ```tsx
-  {props.rows.map((row, rowIndex) => (
-    <View key={props.stringLabels[rowIndex]} style={styles.stringRow}>
-  ```
-- **Observed Warning:**
-  ```
-  ERROR Encountered two children with the same key, `E`. Keys should be unique so that components maintain their identity across updates.
-  ```
-- **Root Cause:** Standard guitar tuning has two strings named `"E"`: high e (string index 5 / conventional string 1) and low E (string index 0 / conventional string 6). Because both return the label `"E"`, React warns of duplicate sibling keys.
-- **Impact:** In development builds (`npm run android` with Metro), this triggers a persistent yellow warning toast banner on the phone screen. In production release builds, React suppresses development warnings, but non-unique keys can degrade React reconciler performance.
-- **Recommended Fix:** Change `key={props.stringLabels[rowIndex]}` to `key={`string-${rowIndex}`}` or `key={rowIndex}`.
+### 9.1. Defect: React Non-Unique Key Warning in `NeckBoard.tsx` (RESOLVED)
+- **Pre-Patch Baseline:** In commit `124300c`, line 30 mapped `key={props.stringLabels[rowIndex]}`. Because both high e and low E strings have label `"E"`, React threw duplicate key errors: `Encountered two children with the same key, 'E'`.
+- **Post-Patch Resolution (`dfb2363`):** Updated to `key={stringRowKey(row[0].stringIndex)}`, producing unique keys `string-5` through `string-0`.
+- **Verification:** Verified via `npm test` (new test passed), Metro console output, and `adb logcat`. Warning is 100% eliminated.
 
-### 9.2. Framework Warning: Deprecated `SafeAreaView` (Maintenance Note)
-- **Observed Warning:**
-  ```
-  SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead.
-  ```
-- **Impact:** Informational deprecation warning from React Native 0.76+. Does not impact runtime behavior in Increment 3.
+### 9.2. Defect: Status-Bar Heading Overlap (RESOLVED)
+- **Pre-Patch Baseline:** In commit `124300c`, the `FretWays` brand heading began at Y=32 px, overlapping the Android clock and status indicators.
+- **Post-Patch Resolution (`dfb2363`):** Added `paddingTop: 12 + androidTopInset()` and translucent status-bar configuration in `app.json`.
+- **Verification:** Physical screen inspection and `uiautomator dump` confirmed heading now begins at `Y = 108 px`. Status bar content is completely unobstructed.
 
-### 9.3. Development Client Onboarding Sheet
+### 9.3. Framework Warning: Deprecated `SafeAreaView` (RESOLVED)
+- **Pre-Patch Baseline:** React Native logged an informational warning that `SafeAreaView` is deprecated.
+- **Post-Patch Resolution (`dfb2363`):** Replaced `SafeAreaView` with standard `<View style={styles.screen}>` and manual top inset calculation.
+- **Verification:** Deprecation warning no longer logged.
+
+### 9.4. Development Client Onboarding Sheet (Expected Tooling Behavior)
 - On initial launch after `npx expo prebuild`, Expo Dev Client presents an onboarding bottom-sheet dialog. Once dismissed, the Reference app occupies full screen normally. Production release builds bypass the dev launcher entirely.
 
 ---
 
-## 10. Key Evidence Screenshots
+## 10. Evidence Screenshots Catalog
 
-The following screenshots capture the verified states on the physical iQOO Neo 6 device and are stored in `apps/reference/evidence/screenshots/`:
+### Post-Patch Verification Screenshots (Commit `dfb2363`)
+Stored in `apps/reference/evidence/screenshots/`:
 
 | Screenshot Reference | Captured State | Verification Purpose |
 |---|---|---|
-| [`02-g-major-clean.png`](./screenshots/02-g-major-clean.png) | Full Reference screen, G major, frets 0–4 | **Required State 1:** Visual layout, 6 strings, 8 G-major chord positions |
-| [`08-jump-12.png`](./screenshots/08-jump-12.png) | Neck shifted to fret 12 (frets 12–16) | **Required State 2:** Neck shifted to higher fret region |
-| [`09-jump-20.png`](./screenshots/09-jump-20.png) | Neck shifted to fret 20 (frets 20–24) | High fret boundary clamping & 24-fret neck limit |
-| [`12-label-mode-names.png`](./screenshots/12-label-mode-names.png) | Label mode set to "Names" | **Required State 3a:** Pitch names on all fret cells |
-| [`13-label-mode-intervals.png`](./screenshots/13-label-mode-intervals.png) | Label mode set to "Intervals" | **Required State 3b:** Interval degree numerals (`R`, `3`, `5`) |
-| [`14-non-chord-e4-selected.png`](./screenshots/14-non-chord-e4-selected.png) | String 1 fret 0 (E4) selected in G major | **Required State 4:** Non-chord tone selection & status display |
-| [`15-solo-b3-string2.png`](./screenshots/15-solo-b3-string2.png) | Open B3 (String 2, fret 0) selected | Dual B3 verification: Open string position |
-| [`16-solo-b3-string3.png`](./screenshots/16-solo-b3-string3.png) | Fretted B3 (String 3, fret 4) selected | Dual B3 verification: G-string fret 4 position |
+| [`20-postpatch-g-major-fretboard.png`](./screenshots/20-postpatch-g-major-fretboard.png) | Full Reference screen, G major, frets 0–4 | **Status Bar & Key Fix:** Completely clear of clock/battery, both E labels visible, zero warning banners |
+| [`21-postpatch-intervals-mode.png`](./screenshots/21-postpatch-intervals-mode.png) | Label mode set to "Intervals" | **Chromatic Intervals:** Displays `R`, `m2`, `M2`, `m3`, `M3`, `P4`, `TT`, `P5`, `m6`, `M6`, `m7`, `M7` |
+| [`22-postpatch-names-mode.png`](./screenshots/22-postpatch-names-mode.png) | Label mode set to "Names" | **Pitch Names:** Note names on all cells with role badging |
+
+### Historical Pre-Patch Screenshots (Commit `124300c`)
+Preserved for audit trail and regression tracking:
+
+| Screenshot Reference | Historical State | Purpose |
+|---|---|---|
+| [`01-main-screen-c-major.png`](./screenshots/01-main-screen-c-major.png) | Initial launch state with C major | Pre-patch launch baseline |
+| [`02-g-major-clean.png`](./screenshots/02-g-major-clean.png) | G major, frets 0–4 | Pre-patch layout baseline |
+| [`03-chord-c-major.png`](./screenshots/03-chord-c-major.png) | C major selected | Pre-patch chord switching |
+| [`04-chord-a-minor.png`](./screenshots/04-chord-a-minor.png) | A minor selected | Pre-patch chord switching |
+| [`05-chord-f-major.png`](./screenshots/05-chord-f-major.png) | F major selected | Pre-patch chord switching |
+| [`06-jump-5.png`](./screenshots/06-jump-5.png) | Fret jump 5 (frets 5–9) | Navigation verification |
+| [`07-jump-7.png`](./screenshots/07-jump-7.png) | Fret jump 7 (frets 7–11) | Navigation verification |
+| [`08-jump-12.png`](./screenshots/08-jump-12.png) | Fret jump 12 (frets 12–16) | High fret navigation |
+| [`09-jump-20.png`](./screenshots/09-jump-20.png) | Fret jump 20 (frets 20–24) | 24-fret neck limit boundary |
+| [`10-swipe-left-fret-6.png`](./screenshots/10-swipe-left-fret-6.png) | Swipe left (+1 fret) | Gesture navigation |
+| [`11-swipe-right-back-to-5.png`](./screenshots/11-swipe-right-back-to-5.png) | Swipe right (-1 fret) | Gesture navigation |
+| [`12-label-mode-names.png`](./screenshots/12-label-mode-names.png) | Names mode | Pre-patch names |
+| [`13-label-mode-intervals.png`](./screenshots/13-label-mode-intervals.png) | Intervals mode | Pre-patch intervals |
+| [`14-non-chord-e4-selected.png`](./screenshots/14-non-chord-e4-selected.png) | Non-chord E4 selected | Outside chord selection feedback |
+| [`15-solo-b3-string2.png`](./screenshots/15-solo-b3-string2.png) | Open B3 selected | Dual B3 position 1 |
+| [`16-solo-b3-string3.png`](./screenshots/16-solo-b3-string3.png) | Fretted B3 selected | Dual B3 position 2 |
+| [`17-g2-root.png`](./screenshots/17-g2-root.png) | Low G2 root | Root octave register |
+| [`18-g3-root.png`](./screenshots/18-g3-root.png) | Middle G3 root | Root octave register |
+| [`19-g4-root.png`](./screenshots/19-g4-root.png) | High G4 root | Root octave register |
 
 ---
 
@@ -358,19 +378,22 @@ The following screenshots capture the verified states on the physical iQOO Neo 6
 | Criterion | Target Requirement | Verified Result | Status |
 |---|---|---|:---:|
 | Music Domain Tests | 13/13 tests pass | 13/13 passed | **PASSED** |
-| Reference Harness Tests | 7/7 tests pass | 7/7 passed | **PASSED** |
+| Reference Harness Tests | 8/8 tests pass | 8/8 passed | **PASSED** |
 | TypeScript Check | 0 errors | 0 errors | **PASSED** |
 | Decoder Flags | External libs & FFmpeg disabled | Both flags verified in gradle.properties & APK | **PASSED** |
 | Dependency Pin | `react-native-audio-api@0.13.6` | Confirmed in package.json & APK | **PASSED** |
+| Status-Bar Clearance | Heading below clock/battery | Y=108 px top inset; zero clipping | **PASSED** |
+| Row Key Uniqueness | Unique keys for high e and low E | `stringRowKey()` implemented; 0 warnings | **PASSED** |
 | Visual Layout | High e top, Low E bottom, 6 strings | Confirmed on physical screen | **PASSED** |
 | Musical Accuracy | 8 positions in G major (frets 0–4) | All 8 verified with correct roles | **PASSED** |
 | Dual B3 Preservation | Open B3 and fret-4 B3 distinct | Distinct cells, both produce MIDI 59 | **PASSED** |
 | Chord Switching | C, Am, F, G dynamic remapping | Accurate harmonic updates across all chords | **PASSED** |
 | Neck Navigation | Jumps (0, 5, 7, 12, 20), swiping, clamping | Confirmed; frets 20–24 accessible | **PASSED** |
-| Label Modes | Marks, Names, Intervals | Readability & harmonic roles confirmed | **PASSED** |
+| Chromatic Intervals | `R`, `m2`, `M2`, `m3`, `M3`, `P4`, `TT`, `P5`, `m6`, `M6`, `m7`, `M7` | Accurate full chromatic map verified | **PASSED** |
 | Audio Playback | Solo, With chord, rapid retriggering | Oboe/AAudio stable; clean voice replacement | **PASSED** |
 | Usability Sizing | Touch targets comfortable (>48 dp) | Cells ~65×67 dp; zero accidental taps | **PASSED** |
 | Human Listening | Direct acoustic audition by ear | Awaiting physical product owner audition | **PENDING** |
+| Guitarist Usability | Product owner personal verification | Awaiting physical product owner verification | **PENDING** |
 | Commercial Licensing | Third-party license clearance | Formal audit remains open | **OPEN** |
 
-**Conclusion:** FretWays Phase 1 Increment 3 Reference application meets all automated, visual, physical, and architectural criteria on the iQOO Neo 6. The single non-blocking code defect identified (React duplicate key warning on string label `"E"`) is documented for resolution in the next development cycle. Human acoustic listening criteria remain formally marked **PENDING** until verified by human ear.
+**Conclusion:** FretWays Phase 1 Increment 3 Reference application meets all automated, visual, physical, and architectural criteria on the iQOO Neo 6. All reported UI issues (status bar overlap and duplicate React key warning for `E`) are completely resolved in commit `dfb2363`. In accordance with product governance, **Human Acoustic Listening** and **Guitarist Usability Acceptance** remain formally marked **PENDING** until verified directly by the product owner.
