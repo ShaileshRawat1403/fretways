@@ -2,7 +2,7 @@ import { defaultNeck, standardTuning, timelineLength, validateArrangement } from
 import type { Arrangement, ChordSymbol, HarmonicSegment, Timeline } from "../../../packages/music/src/index";
 
 import type { Session } from "./session";
-import { createSession, emptyArrangement } from "./session";
+import { createSession, emptyArrangement, nextLeadSerial } from "./session";
 
 export const PROJECT_SCHEMA = 1;
 
@@ -37,6 +37,7 @@ function isTimeline(value: unknown): value is Timeline {
     return false;
   }
   return timeline.segments.every((segment) => {
+    if (!segment || typeof segment !== "object") return false;
     const item = segment as HarmonicSegment;
     return typeof item.id === "string" && item.provenance === "manual" && Number.isFinite(item.startBeat) && item.startBeat >= 0 && Number.isFinite(item.durationBeats) && item.durationBeats > 0 && isChord(item.chord);
   });
@@ -45,41 +46,50 @@ function isTimeline(value: unknown): value is Timeline {
 function isArrangement(value: unknown): value is Arrangement {
   if (!value || typeof value !== "object") return false;
   const arrangement = value as Arrangement;
-  return Array.isArray(arrangement.rhythm) && Array.isArray(arrangement.lead);
+  if (!Array.isArray(arrangement.rhythm) || !Array.isArray(arrangement.lead)) return false;
+  if (arrangement.rhythm.some((item) => item == null || typeof item !== "object")) return false;
+  if (arrangement.lead.some((item) => item == null || typeof item !== "object")) return false;
+  return true;
 }
 
 export function parseProject(raw: string): ParseResult {
-  let parsed: unknown;
   try {
-    parsed = JSON.parse(raw);
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return { ok: false, reason: "The saved file is not valid JSON." };
+    }
+    if (!parsed || typeof parsed !== "object") return { ok: false, reason: "The saved file is empty." };
+    const document = parsed as Partial<ProjectFile>;
+    if (document.schema !== PROJECT_SCHEMA) return { ok: false, reason: "This file uses an unsupported project version." };
+    if (!isTimeline(document.timeline) || !isArrangement(document.arrangement)) {
+      return { ok: false, reason: "The saved song is missing or malformed." };
+    }
+    const errors = validateArrangement(document.arrangement, document.timeline, standardTuning, defaultNeck);
+    if (errors.length > 0) return { ok: false, reason: errors[0] ?? "The saved arrangement is not valid." };
+    if (timelineLength(document.timeline) <= 0) return { ok: false, reason: "The saved timeline has no beats." };
+    return {
+      ok: true,
+      project: {
+        schema: PROJECT_SCHEMA,
+        title: typeof document.title === "string" && document.title.trim() ? document.title : "FretWays",
+        timeline: document.timeline,
+        arrangement: document.arrangement,
+      },
+    };
   } catch {
-    return { ok: false, reason: "The saved file is not valid JSON." };
+    return { ok: false, reason: "The saved song is malformed." };
   }
-  if (!parsed || typeof parsed !== "object") return { ok: false, reason: "The saved file is empty." };
-  const document = parsed as Partial<ProjectFile>;
-  if (document.schema !== PROJECT_SCHEMA) return { ok: false, reason: "This file uses an unsupported project version." };
-  if (!isTimeline(document.timeline) || !isArrangement(document.arrangement)) {
-    return { ok: false, reason: "The saved song is missing its timeline or arrangement." };
-  }
-  const errors = validateArrangement(document.arrangement, document.timeline, standardTuning, defaultNeck);
-  if (errors.length > 0) return { ok: false, reason: errors[0] ?? "The saved arrangement is not valid." };
-  if (timelineLength(document.timeline) <= 0) return { ok: false, reason: "The saved timeline has no beats." };
-  return {
-    ok: true,
-    project: {
-      schema: PROJECT_SCHEMA,
-      title: typeof document.title === "string" && document.title.trim() ? document.title : "FretWays",
-      timeline: document.timeline,
-      arrangement: document.arrangement,
-    },
-  };
 }
 
 export function applyProject(session: Session, project: ProjectFile): Session {
   const fresh = createSession(project.timeline);
+  const arrangement = project.arrangement ?? emptyArrangement();
   return {
     ...fresh,
-    arrangement: project.arrangement ?? emptyArrangement(),
+    arrangement,
+    nextId: nextLeadSerial(arrangement.lead),
     notice: `Opened ${project.title}.`,
   };
 }

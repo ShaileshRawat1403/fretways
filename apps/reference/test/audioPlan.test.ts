@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { prototypeTimeline } from "../../../packages/music/src/index";
-import { acceptSchedule, assignStartTimes, auditionVoices, planArrangement, planReferenceProgression } from "../src/audio/plan";
+import { acceptSchedule, assignStartTimes, auditionVoices, beatAtContextTime, planArrangement, planReferenceProgression, planReferenceWindow } from "../src/audio/plan";
 import { cellAt } from "../src/neck";
 import { commitDraft, createSession, insertLead, placePlayhead, savedRhythm, setDraftFret, setHarmonyChoice } from "../src/session";
 
@@ -47,5 +47,37 @@ describe("audio plans", () => {
     const progression = planReferenceProgression(session.timeline, 0, 1);
     assert.equal(progression.length, 12);
     assert.equal(new Set(assignStartTimes(progression, 1).map((voice) => voice.contextTimeAtSchedule)).size, 1);
+  });
+
+  it("clips events that have already started and schedules only the next transport window", () => {
+    let session = setHarmonyChoice(placePlayhead(createSession(prototypeTimeline()), 4), "hold");
+    session = setDraftFret(session, 3, 0);
+    session = commitDraft(session);
+    session = {
+      ...session,
+      arrangement: {
+        rhythm: session.arrangement.rhythm,
+        lead: [{ kind: "note", id: "lead-long", startBeat: 4, durationBeats: 4, note: cellAt(gChord, 4, 0).note }],
+      },
+    };
+    const scale = 60 / session.timeline.bpm;
+    const clipped = planArrangement(session.arrangement, session.timeline, 6);
+    const rhythm = clipped.find((voice) => voice.eventId.startsWith("rhythm-"));
+    const lead = clipped.find((voice) => voice.eventId === "lead-long");
+    assert.ok(rhythm && lead);
+    assert.equal(rhythm.startOffsetSeconds, 0);
+    assert.equal(lead.startOffsetSeconds, 0);
+    assert.ok(Math.abs(rhythm.durationSeconds - 2 * scale) < 1e-9);
+    assert.ok(Math.abs(lead.durationSeconds - 2 * scale) < 1e-9);
+    const timeline = prototypeTimeline();
+    assert.equal(planReferenceWindow(timeline, 0, 0, 4, false).length, 3);
+    const middle = planReferenceWindow(timeline, 6, 6, 10, false);
+    assert.equal(middle.filter((voice) => voice.eventId.startsWith("g-major")).length, 3);
+    assert.equal(middle.filter((voice) => voice.eventId.startsWith("a-minor")).length, 3);
+    const wrapped = planReferenceWindow(timeline, 14, 14, 18, true);
+    assert.equal(wrapped.filter((voice) => voice.eventId.startsWith("f-major")).length, 3);
+    assert.equal(wrapped.filter((voice) => voice.eventId.startsWith("c-major")).length, 3);
+    assert.equal(planReferenceWindow(timeline, 14, 14, 18, false).filter((voice) => voice.eventId.startsWith("c-major")).length, 0);
+    assert.equal(beatAtContextTime(4, 10, 12, 90), 7);
   });
 });

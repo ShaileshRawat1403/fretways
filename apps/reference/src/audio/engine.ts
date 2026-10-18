@@ -70,10 +70,11 @@ export function stopAudio(group?: Group) {
   stopAudio("tap");
 }
 
-export async function playPlans(group: Group, plans: VoicePlan[]) {
-  const ticket = tickets[group] + 1;
-  tickets[group] = ticket;
-  stopGroup(group);
+async function schedule(group: Group, plans: VoicePlan[], replace: boolean) {
+  const ticket = replace ? tickets[group] + 1 : tickets[group];
+  if (replace) tickets[group] = ticket;
+  if (replace) stopGroup(group);
+  if (plans.length === 0) return [];
   const context = await audioContext();
   if (!acceptSchedule(ticket, tickets[group])) return [];
   const sampleRate = context.sampleRate || SAMPLE_RATE;
@@ -95,7 +96,15 @@ export async function playPlans(group: Group, plans: VoicePlan[]) {
   });
   return timed.map((plan) => ({
     ...plan,
-    acousticLatencyMs: null,
-    acousticNote: "Not measured. Internal schedule times are not speaker latency.",
+    acousticLatencyMs: null as null,
+    acousticNote: "Not measured. Internal schedule times are not speaker latency." as const,
   }));
+}
+
+export function playPlans(group: Group, plans: VoicePlan[]) {
+  return schedule(group, plans, true);
+}
+
+export function extendPlans(group: Group, plans: VoicePlan[]) {
+  return schedule(group, plans, false);
 }

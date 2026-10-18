@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { PanResponder, Platform, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from "react-native";
 
 import { noteName } from "../../packages/music/src/index";
-import { playPlans, readAudioTime, stopAudio } from "./src/audio/engine";
-import { auditionVoices, planArrangement, planReferenceProgression, planVoices, type ChordId } from "./src/audio/plan";
+import { playPlans, extendPlans, readAudioTime, stopAudio } from "./src/audio/engine";
+import { auditionVoices, beatAtContextTime, planArrangement, planReferenceWindow, planVoices, TRANSPORT_HORIZON_BEATS, type ChordId } from "./src/audio/plan";
 import { NeckBoard } from "./src/NeckBoard";
 import { chordTitle, displayStrings, openStringLabel, positionJumps, visibleFrets, visibleNeck, type NeckCell } from "./src/neck";
 import { applyProject, parseProject, toProject } from "./src/project";
@@ -22,7 +22,8 @@ import {
   moveNeck,
   muteDraftString,
   pause,
-  placePlayhead,
+  placeCursorAtPlayhead,
+  placeCursorAtSection,
   play,
   playheadSegment,
   redo,
@@ -38,6 +39,7 @@ import {
   setWorkspace,
   setYoursMode,
   songLength,
+  stepCursor,
   stop,
   undo,
   type Session,
@@ -93,22 +95,39 @@ export default function App() {
     const epoch = session.transportEpoch;
     const startBeat = session.beat;
     const bpm = session.timeline.bpm;
-    const cycles = session.loop ? 8 : 1;
+    const loop = session.loop;
     const timeline = session.timeline;
+    const length = songLength(session);
     let cancel = false;
-    const perfStart = performance.now();
-    let audioStart: number | null = null;
+    let anchorContext: number | null = null;
+    let scheduledUntil = startBeat;
+    let extending = false;
     void (async () => {
-      await playPlans("transport", planReferenceProgression(timeline, startBeat, cycles));
+      const scheduled = await playPlans("transport", planReferenceWindow(timeline, startBeat, startBeat, startBeat + TRANSPORT_HORIZON_BEATS, loop));
       if (cancel) return;
-      audioStart = await readAudioTime();
+      anchorContext = scheduled[0]?.contextTimeAtSchedule ?? await readAudioTime();
+      scheduledUntil = startBeat + TRANSPORT_HORIZON_BEATS;
     })();
     const timer = setInterval(() => {
       void (async () => {
+        if (cancel || anchorContext == null) return;
         const now = await readAudioTime();
-        const seconds = audioStart != null && now != null ? now - audioStart : (performance.now() - perfStart) / 1000;
-        if (cancel) return;
-        setSession((current) => (current.transportEpoch === epoch ? placePlayhead(current, startBeat + seconds * (bpm / 60)) : current));
+        if (now == null) return;
+        const unwrapped = beatAtContextTime(startBeat, anchorContext, now, bpm);
+        if (!loop && unwrapped >= length) {
+          setSession((current) => current.transportEpoch === epoch ? { ...current, beat: length, playing: false, notice: "End of the progression." } : current);
+          return;
+        }
+        const display = loop ? unwrapped % length : Math.min(unwrapped, length);
+        setSession((current) => current.transportEpoch === epoch ? { ...current, beat: display } : current);
+        if (extending || unwrapped + 1 < scheduledUntil) return;
+        if (!loop && scheduledUntil >= length) return;
+        extending = true;
+        const from = scheduledUntil;
+        const currentBeat = unwrapped;
+        scheduledUntil += TRANSPORT_HORIZON_BEATS;
+        await extendPlans("transport", planReferenceWindow(timeline, currentBeat, from, from + TRANSPORT_HORIZON_BEATS, loop));
+        extending = false;
       })();
     }, 80);
     return () => {
@@ -160,7 +179,7 @@ export default function App() {
   async function save() {
     try {
       await writeProject(JSON.stringify(toProject(sessionRef.current)));
-      setSession((current) => ({ ...current, notice: "Saved on this device. The write is not claimed to be crash-proof." }));
+      setSession((current) => ({ ...current, notice: "Saved. A backup is kept until the new file is in place. A crash during the final move has not been tested on a phone." }));
     } catch {
       setSession((current) => ({ ...current, notice: "Save failed. The previous file, if any, was left as it was." }));
     }
@@ -280,8 +299,12 @@ export default function App() {
         ) : null}
         {session.workspace === "yours" && session.yoursMode === "lead" ? (
           <View style={styles.tray}>
-            <Text style={styles.meta}>Cursor {formatBeat(session.cursorBeat, songLength(session))} · {session.leadDuration === 1 ? "quarter" : "eighth"}</Text>
+            <Text style={styles.meta}>{displayedSegment(session).chord.label} selected · insertion {formatBeat(session.cursorBeat, songLength(session))} · {session.leadDuration === 1 ? "quarter" : "eighth"}</Text>
             <View style={styles.row}>
+              <Pressable onPress={() => setSession((current) => placeCursorAtSection(current))} style={styles.chip}><Text style={styles.chipText}>At chord</Text></Pressable>
+              <Pressable onPress={() => setSession((current) => placeCursorAtPlayhead(current))} style={styles.chip}><Text style={styles.chipText}>At playhead</Text></Pressable>
+              <Pressable onPress={() => setSession((current) => stepCursor(current, -1))} style={styles.chip}><Text style={styles.chipText}>Back</Text></Pressable>
+              <Pressable onPress={() => setSession((current) => stepCursor(current, 1))} style={styles.chip}><Text style={styles.chipText}>Forward</Text></Pressable>
               <Pressable onPress={() => setSession((current) => ({ ...current, leadDuration: current.leadDuration === 1 ? 0.5 : 1 }))} style={styles.chip}><Text style={styles.chipText}>Duration</Text></Pressable>
               <Pressable onPress={() => setSession((current) => insertLead(current, null))} style={styles.chip}><Text style={styles.chipText}>Rest</Text></Pressable>
               <Pressable onPress={() => setReplaceArmed(true)} style={[styles.chip, replaceArmed && styles.chipOn]}><Text style={styles.chipText}>Replace</Text></Pressable>

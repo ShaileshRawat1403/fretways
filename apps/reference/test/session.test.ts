@@ -16,6 +16,7 @@ import {
   insertLead,
   leadInSegment,
   moveNeck,
+  nextLeadSerial,
   pause,
   placePlayhead,
   play,
@@ -27,6 +28,8 @@ import {
   selectSegment,
   setDraftFret,
   setHarmonyChoice,
+  setLoop,
+  setYoursMode,
   undo,
 } from "../src/session";
 
@@ -140,6 +143,28 @@ describe("lead editing", () => {
     assert.equal(leadInSegment({ ...session, beat: 4, harmonyChoice: "follow" }).length, 1);
     assert.equal(leadInSegment(placePlayhead({ ...session, harmonyChoice: "follow" }, 0)).length, 0);
   });
+
+  it("places the insertion cursor in G when lead editing starts there", () => {
+    let session = selectSegment(createSession(timeline), "g-major");
+    assert.equal(session.beat, 4);
+    assert.equal(session.cursorBeat, 0);
+    session = setYoursMode(session, "lead");
+    assert.equal(session.cursorBeat, 4);
+    assert.equal(displayedSegment(session).id, "g-major");
+    session = insertLead(session, note(4, 0));
+    session = insertLead(session, note(3, 0));
+    assert.equal(session.arrangement.lead.length, 2);
+    for (const event of session.arrangement.lead) {
+      assert.ok(event.startBeat >= 4 && event.startBeat < 8);
+    }
+    const cursor = session.cursorBeat;
+    session = selectSegment(session, "a-minor");
+    assert.equal(session.cursorBeat, cursor);
+    assert.equal(session.beat, 8);
+    const blocked = insertLead(session, note(5, 0));
+    assert.equal(blocked.arrangement.lead.length, 2);
+    assert.match(blocked.notice, /Place the cursor/);
+  });
 });
 
 describe("project files", () => {
@@ -156,5 +181,25 @@ describe("project files", () => {
     const wrong = parseProject(JSON.stringify({ schema: 1, title: "x", timeline, arrangement: { rhythm: [], lead: [{ kind: "note", id: "bad", startBeat: 0, durationBeats: 1, note: { ...note(4, 0), midi: 1 } }] } }));
     assert.equal(wrong.ok, false);
     if (!wrong.ok) assert.match(wrong.reason, /does not match|not valid|midi/i);
+    const nested = parseProject(JSON.stringify({ schema: 1, title: "x", timeline: { ...timeline, segments: [null] }, arrangement: { rhythm: [null], lead: [null] } }));
+    assert.equal(nested.ok, false);
+    assert.equal(setLoop(session, true).transportEpoch, session.transportEpoch + 1);
+    assert.equal(setLoop(session, true).cursorBeat, session.cursorBeat);
+  });
+
+  it("keeps lead ids unique after reopening", () => {
+    let session = setYoursMode(selectSegment(createSession(timeline), "g-major"), "lead");
+    session = insertLead(session, note(4, 0));
+    session = insertLead(session, note(3, 0));
+    session = insertLead(session, null);
+    const opened = applyProject(createSession(), parseProject(JSON.stringify(toProject(session))).ok ? (parseProject(JSON.stringify(toProject(session))) as { ok: true; project: ReturnType<typeof toProject> }).project : toProject(session));
+    assert.equal(opened.nextId, 4);
+    const more = insertLead(setYoursMode(opened, "lead"), note(5, 0));
+    const ids = more.arrangement.lead.map((event) => event.id);
+    assert.equal(new Set(ids).size, ids.length);
+    assert.equal(ids.length, 4);
+    const again = applyProject(createSession(), toProject(more));
+    assert.deepEqual(again.arrangement.lead.map((event) => event.id), ids);
+    assert.equal(nextLeadSerial(again.arrangement.lead), 5);
   });
 });

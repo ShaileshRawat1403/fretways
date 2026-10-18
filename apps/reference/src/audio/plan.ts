@@ -126,12 +126,28 @@ export function auditionVoices(note: PlacedNote, mode: AuditionMode, chordId: Ch
   return planVoices({ gesture: [note], mode, chordId, idPrefix });
 }
 
+export const TRANSPORT_HORIZON_BEATS = 4;
+
+export function beatAtContextTime(anchorBeat: number, anchorContextTime: number, contextNow: number, bpm: number): number {
+  return anchorBeat + (contextNow - anchorContextTime) * (bpm / 60);
+}
+
+function clipEvent(startBeat: number, durationBeats: number, fromBeat: number, scale: number): { offset: number; duration: number } | null {
+  const end = startBeat + durationBeats;
+  if (end <= fromBeat) return null;
+  const audibleStart = Math.max(startBeat, fromBeat);
+  return {
+    offset: Math.max(0, (startBeat - fromBeat) * scale),
+    duration: (end - audibleStart) * scale,
+  };
+}
+
 export function planArrangement(arrangement: Arrangement, timeline: Timeline, fromBeat: number): VoicePlan[] {
   const scale = secondsPerBeat(timeline.bpm);
   const voices: VoicePlan[] = [];
   for (const event of arrangement.rhythm) {
-    if (event.startBeat + event.durationBeats <= fromBeat) continue;
-    const offset = Math.max(0, (event.startBeat - fromBeat) * scale);
+    const clip = clipEvent(event.startBeat, event.durationBeats, fromBeat, scale);
+    if (!clip) continue;
     event.notes.forEach((note, index) => {
       voices.push(voice({
         idPrefix: event.id,
@@ -141,15 +157,15 @@ export function planArrangement(arrangement: Arrangement, timeline: Timeline, fr
         note,
         midi: note.midi,
         amplitude: gestureAmplitude,
-        startOffsetSeconds: Math.max(0, offset),
-        durationSeconds: event.durationBeats * scale,
+        startOffsetSeconds: clip.offset,
+        durationSeconds: clip.duration,
       }));
     });
   }
   for (const event of arrangement.lead) {
     if (event.kind !== "note") continue;
-    const offset = (event.startBeat - fromBeat) * scale;
-    if (event.startBeat + event.durationBeats <= fromBeat) continue;
+    const clip = clipEvent(event.startBeat, event.durationBeats, fromBeat, scale);
+    if (!clip) continue;
     voices.push(voice({
       idPrefix: event.id,
       index: 0,
@@ -158,9 +174,44 @@ export function planArrangement(arrangement: Arrangement, timeline: Timeline, fr
       note: event.note,
       midi: event.note.midi,
       amplitude: gestureAmplitude,
-      startOffsetSeconds: Math.max(0, offset),
-      durationSeconds: event.durationBeats * scale,
+      startOffsetSeconds: clip.offset,
+      durationSeconds: clip.duration,
     }));
+  }
+  return voices;
+}
+
+export function planReferenceWindow(timeline: Timeline, nowBeat: number, rangeStart: number, rangeEnd: number, loop: boolean): VoicePlan[] {
+  const scale = secondsPerBeat(timeline.bpm);
+  const length = timeline.segments.reduce((end, segment) => Math.max(end, segment.startBeat + segment.durationBeats), 0);
+  const limit = loop ? rangeEnd : Math.min(rangeEnd, length);
+  if (length <= 0 || limit <= rangeStart) return [];
+  const voices: VoicePlan[] = [];
+  const firstCycle = Math.floor(rangeStart / length);
+  const lastCycle = Math.floor(Math.max(rangeStart, limit - 0.0001) / length);
+  for (let cycle = firstCycle; cycle <= lastCycle; cycle += 1) {
+    for (const segment of timeline.segments) {
+      const absoluteStart = cycle * length + segment.startBeat;
+      const absoluteEnd = absoluteStart + segment.durationBeats;
+      const sliceEnd = Math.min(absoluteEnd, limit);
+      const sliceStart = Math.max(absoluteStart, rangeStart, nowBeat);
+      if (sliceEnd <= sliceStart) continue;
+      const bed = referenceBeds[segment.chord.id as ChordId];
+      if (!bed) continue;
+      bed.forEach((midi, index) => {
+        voices.push(voice({
+          idPrefix: `${segment.id}-w${cycle}-${Math.round(sliceStart * 1000)}`,
+          index,
+          origin: "reference",
+          eventId: `${segment.id}-w${cycle}`,
+          note: null,
+          midi,
+          amplitude: referenceAmplitude,
+          startOffsetSeconds: Math.max(0, (sliceStart - nowBeat) * scale),
+          durationSeconds: (sliceEnd - sliceStart) * scale,
+        }));
+      });
+    }
   }
   return voices;
 }

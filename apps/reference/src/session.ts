@@ -141,7 +141,11 @@ export function setHarmonyChoice(session: Session, choice: HarmonyChoice): Sessi
 }
 
 export function setLoop(session: Session, loop: boolean): Session {
-  return { ...session, loop };
+  return bump({
+    ...session,
+    loop,
+    notice: loop ? "Loop on. Playback will reschedule." : "Loop off. Playback will reschedule.",
+  });
 }
 
 export function play(session: Session): Session {
@@ -177,7 +181,13 @@ export function setWorkspace(session: Session, workspace: Workspace): Session {
 }
 
 export function setYoursMode(session: Session, yoursMode: YoursMode): Session {
-  return { ...session, yoursMode, workspace: "yours" };
+  const next = { ...session, yoursMode, workspace: "yours" as const };
+  if (yoursMode !== "lead") return next;
+  if (cursorInsideDisplayed(next)) {
+    const segment = displayedSegment(next);
+    return { ...next, notice: `${segment.chord.label} · insertion ${formatBeat(next.cursorBeat)}.` };
+  }
+  return placeCursorAtSection(next);
 }
 
 export function setCompareView(session: Session, compareView: CompareView): Session {
@@ -275,19 +285,85 @@ function leadFits(session: Session, start: number, duration: number): boolean {
   return start >= 0 && start + duration <= songLength(session);
 }
 
+export function cursorInsideDisplayed(session: Session): boolean {
+  const segment = displayedSegment(session);
+  return session.cursorBeat >= segment.startBeat && session.cursorBeat < segment.startBeat + segment.durationBeats;
+}
+
+export function placeCursor(session: Session, beat: number): Session {
+  const length = songLength(session);
+  const next = Math.min(length, Math.max(0, beat));
+  const segment = displayedSegment({ ...session, cursorBeat: next });
+  return {
+    ...session,
+    cursorBeat: next,
+    notice: `${segment.chord.label} is selected · insertion ${formatBeat(next, length)}.`,
+  };
+}
+
+export function placeCursorAtSection(session: Session): Session {
+  const segment = displayedSegment(session);
+  return placeCursor(session, segment.startBeat);
+}
+
+export function placeCursorAtPlayhead(session: Session): Session {
+  return placeCursor(session, Math.min(session.beat, songLength(session)));
+}
+
+export function stepCursor(session: Session, direction: -1 | 1): Session {
+  const segment = displayedSegment(session);
+  const next = session.cursorBeat + direction * session.leadDuration;
+  const end = segment.startBeat + segment.durationBeats;
+  if (next < segment.startBeat || next >= end) {
+    return { ...session, notice: `Insertion stays inside ${segment.chord.label}.` };
+  }
+  return placeCursor(session, next);
+}
+
+export function nextLeadSerial(events: { id: string }[]): number {
+  let next = 1;
+  for (const event of events) {
+    const match = /^lead-(\d+)$/.exec(event.id);
+    if (!match) continue;
+    next = Math.max(next, Number(match[1]) + 1);
+  }
+  return next;
+}
+
+function allocateLeadId(session: Session): { session: Session; id: string } {
+  const used = new Set(session.arrangement.lead.map((event) => event.id));
+  let serial = Math.max(session.nextId, nextLeadSerial(session.arrangement.lead));
+  let id = `lead-${serial}`;
+  while (used.has(id)) {
+    serial += 1;
+    id = `lead-${serial}`;
+  }
+  return { session: { ...session, nextId: serial + 1 }, id };
+}
+
 export function insertLead(session: Session, note: PlacedNote | null): Session {
+  const segment = displayedSegment(session);
+  if (!cursorInsideDisplayed(session)) {
+    return {
+      ...session,
+      notice: `${segment.chord.label} is selected, but insertion is at ${formatBeat(session.cursorBeat)}. Place the cursor in this section.`,
+    };
+  }
   const duration = session.leadDuration;
   if (!leadFits(session, session.cursorBeat, duration)) {
     return { ...session, notice: "That note would pass the end of the song." };
   }
-  const id = `lead-${session.nextId}`;
+  const allocated = allocateLeadId(session);
+  const id = allocated.id;
   const event: LeadEvent = note
     ? { kind: "note", id, startBeat: session.cursorBeat, durationBeats: duration, note }
     : { kind: "rest", id, startBeat: session.cursorBeat, durationBeats: duration };
   return remember(
-    { ...session, nextId: session.nextId + 1, cursorBeat: session.cursorBeat + duration, selectedLeadId: id },
+    { ...allocated.session, cursorBeat: session.cursorBeat + duration, selectedLeadId: id },
     { rhythm: session.arrangement.rhythm, lead: [...session.arrangement.lead, event] },
-    note ? `Inserted ${event.kind} at ${formatBeat(event.startBeat)}.` : `Inserted a rest at ${formatBeat(event.startBeat)}.`,
+    note
+      ? `Inserted a note in ${segment.chord.label} at ${formatBeat(event.startBeat)}.`
+      : `Inserted a rest in ${segment.chord.label} at ${formatBeat(event.startBeat)}.`,
   );
 }
 
