@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FRETWAYS - Responsive Guitarist Cockpit</title>
+<style>
+  :root {
+    --bg-obsidian: #090A0D;
+    --card-bg: #12141A;
+    --panel-border: #222632;
+    --gold: #E5C158;
+    --gold-glow: rgba(229, 193, 88, 0.25);
+    --teal: #2DD4BF;
+    --teal-glow: rgba(45, 212, 191, 0.25);
+    --neck-wood-1: #2B1810;
+    --neck-wood-2: #160D08;
+    --text-main: #E2E8F0;
+    --text-dim: #94A3B8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; }
+  body {
+    background: var(--bg-obsidian);
+    color: var(--text-main);
+    min-height: 100vh;
+    padding-bottom: 70px;
+    user-select: none;
+    overflow-x: hidden;
+  }
+  header.transport-bar {
+    background: #0D0F14;
+    border-bottom: 1px solid var(--panel-border);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .brand {
+    font-weight: 900;
+    font-size: 1.2rem;
+    letter-spacing: 2px;
+    color: var(--gold);
+    text-transform: uppercase;
+  }
+  .oled-pill {
+    background: #000000;
+    border: 1px solid #1E293B;
+    box-shadow: inset 0 0 8px rgba(0,0,0,0.8), 0 0 4px rgba(45,212,191,0.15);
+    color: var(--teal);
+    font-family: monospace;
+    font-size: 0.82rem;
+    padding: 6px 14px;
+    border-radius: 20px;
+    letter-spacing: 1px;
+  }
+  .btn {
+    background: #1A1D24;
+    border: 1px solid #33394B;
+    color: var(--text-main);
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.15s ease;
+  }
+  .btn:hover { background: #252A36; border-color: var(--gold); }
+  .btn-gold { background: var(--gold); color: #000; border: none; }
+  .btn-gold:hover { background: #F3D06B; }
+  .tools-tray {
+    background: #0E1015;
+    border-bottom: 1px solid var(--panel-border);
+    padding: 12px 16px;
+    display: none;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+  }
+  .tools-tray.open { display: grid; }
+  .tool-card {
+    background: #141720;
+    border: 1px solid #232836;
+    padding: 10px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+  }
+  .tool-card h4 { color: var(--gold); margin-bottom: 6px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; }
+  .heads-up-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    padding: 12px;
+    background: #0B0D11;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  .hud-card {
+    background: var(--card-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+    padding: 10px;
+    position: relative;
+    transition: all 0.2s ease;
+  }
+  .hud-card.active {
+    border-color: var(--teal);
+    box-shadow: 0 0 12px var(--teal-glow);
+  }
+  .hud-bar-title { font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
+  .hud-chord { font-size: 1.4rem; font-weight: 800; color: var(--gold); margin: 4px 0; }
+  .hud-grip { font-family: monospace; font-size: 0.8rem; color: var(--teal); background: #080A0E; padding: 2px 6px; border-radius: 3px; display: inline-block; }
+  .hud-next { font-size: 0.68rem; color: var(--text-dim); margin-top: 6px; }
+  .fretboard-container {
+    background: #080A0D;
+    padding: 16px 12px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  .fretboard-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .pill-group { display: flex; gap: 6px; }
+  .pill {
+    background: #151821;
+    border: 1px solid #2B3142;
+    color: var(--text-dim);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    cursor: pointer;
+  }
+  .pill.active { background: var(--teal); color: #000; font-weight: bold; border-color: var(--teal); }
+  .fretboard-scroll-wrapper {
+    overflow-x: auto;
+    position: relative;
+    border: 1px solid #332218;
+    border-radius: 6px;
+    background: linear-gradient(90deg, var(--neck-wood-1), var(--neck-wood-2));
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+    padding: 10px 0;
+  }
+  .fretboard-grid {
+    display: flex;
+    min-width: 900px;
+    position: relative;
+  }
+  .string-labels {
+    position: sticky;
+    left: 0;
+    z-index: 20;
+    background: #140D09;
+    border-right: 2px solid var(--gold);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    padding: 0 8px;
+    font-family: monospace;
+    font-weight: bold;
+    color: var(--gold);
+    font-size: 0.85rem;
+  }
+  .fret-column {
+    flex: 1;
+    min-width: clamp(45px, 5vw, 65px);
+    border-right: 2px solid #66615C;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    height: 160px;
+    position: relative;
+  }
+  .fret-column.nut { border-right: 6px solid #E2E8F0; }
+  .fret-number {
+    position: absolute;
+    bottom: -22px;
+    width: 100%;
+    text-align: center;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+  }
+  .string-line {
+    position: relative;
+    width: 100%;
+    height: 2px;
+    background: #888C94;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .note-node {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(18, 20, 26, 0.85);
+    border: 2px solid var(--teal);
+    box-shadow: 0 0 6px var(--teal-glow), inset 0 0 4px rgba(255,255,255,0.2);
+    color: #FFF;
+    font-size: 0.65rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 5;
+    cursor: pointer;
+  }
+  .note-node.root {
+    border-color: var(--gold);
+    box-shadow: 0 0 8px var(--gold-glow);
+    color: var(--gold);
+  }
+  .note-node.halo {
+    animation: pulseHalo 1.2s infinite ease-in-out;
+  }
+  @keyframes pulseHalo {
+    0% { box-shadow: 0 0 2px var(--gold); }
+    50% { box-shadow: 0 0 14px var(--gold), 0 0 20px var(--gold); }
+    100% { box-shadow: 0 0 2px var(--gold); }
+  }
+  .scrubber-container {
+    margin-top: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .scrubber-container label { font-size: 0.75rem; color: var(--text-dim); letter-spacing: 1px; }
+  .scrubber { flex: 1; accent-color: var(--gold); }
+  .main-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 16px;
+    padding: 16px;
+  }
+  .panel {
+    background: var(--card-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 14px;
+  }
+  .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #1E2330;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+  }
+  .panel-title { font-size: 0.85rem; font-weight: 700; color: var(--gold); text-transform: uppercase; letter-spacing: 1px; }
+  .select-box {
+    background: #0B0D11;
+    border: 1px solid #282E3D;
+    color: var(--text-main);
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  .storyboard-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .lick-card {
+    background: #0A0C10;
+    border: 1px solid #1F2432;
+    border-radius: 4px;
+    padding: 8px;
+    font-size: 0.75rem;
+  }
+  .lick-card h5 { color: var(--teal); margin-bottom: 4px; }
+  .lick-actions { display: flex; gap: 4px; margin-top: 6px; }
+  .zone-pills { display: flex; gap: 6px; margin-bottom: 10px; }
+  .zone-pill {
+    flex: 1;
+    text-align: center;
+    background: #0E1015;
+    border: 1px solid #232836;
+    padding: 6px;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    color: var(--text-dim);
+  }
+  .zone-pill.active { border-color: var(--gold); color: var(--gold); background: #18150B; }
+  nav.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    background: #090A0D;
+    border-top: 1px solid var(--panel-border);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 200;
+  }
+  .nav-tab {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: 8px 12px;
+  }
+  .nav-tab.active { color: var(--gold); border-bottom: 2px solid var(--gold); }
+  body.focus-mode header, body.focus-mode .tools-tray, body.focus-mode .main-grid, body.focus-mode nav {
+    display: none !important;
+  }
+  body.focus-mode .fretboard-container {
+    height: 90vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+</style>
+</head>
+<body>
+  <header class="transport-bar">
+    <div class="brand">FRETWAYS</div>
+    <div class="oled-pill" id="oledDisplay">KEY: C MAJ · 90 BPM</div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn" id="btnTools">Studio Tools</button>
+      <button class="btn" id="btnFlipView">View: Tab 1e Top</button>
+      <button class="btn btn-gold" id="btnPlay">PLAY</button>
+    </div>
+  </header>
+  <div class="tools-tray" id="toolsTray">
+    <div class="tool-card">
+      <h4>Live Chord AI (8192-FFT)</h4>
+      <div style="color:var(--teal); font-family:monospace; margin-top:4px;">Chromagram: C-E-G Peak [Active]</div>
+    </div>
+    <div class="tool-card">
+      <h4>Harmony Setup</h4>
+      <select class="select-box" style="margin:0;">
+        <option>C Major / A Minor</option>
+        <option>G Major / E Minor</option>
+        <option>F Major / D Minor</option>
+      </select>
+    </div>
+    <div class="tool-card">
+      <h4>Luthier Neck Setup</h4>
+      <div style="font-size:0.75rem; color:var(--text-dim);">Scale: 25.5" · Radius: 9.5" · Action: 1.5mm</div>
+    </div>
+    <div class="tool-card">
+      <h4>Audio / IO JSON</h4>
+      <div style="display:flex; gap:6px; margin-top:4px;">
+        <button class="btn" onclick="alert('Configuration Exported')">Export</button>
+        <button class="btn" onclick="alert('Configuration Imported')">Import</button>
+      </div>
+    </div>
+  </div>
+  <section class="heads-up-strip" id="hudStrip">
+    <div class="hud-card active" data-bar="0">
+      <div class="hud-bar-title">BAR 1 · I</div>
+      <div class="hud-chord">C MAJ</div>
+      <div class="hud-grip">x32010</div>
+      <div class="hud-next">NEXT -> G MAJ</div>
+    </div>
+    <div class="hud-card" data-bar="1">
+      <div class="hud-bar-title">BAR 2 · V</div>
+      <div class="hud-chord">G MAJ</div>
+      <div class="hud-grip">320003</div>
+      <div class="hud-next">NEXT -> A MIN</div>
+    </div>
+    <div class="hud-card" data-bar="2">
+      <div class="hud-bar-title">BAR 3 · vi</div>
+      <div class="hud-chord">A MIN</div>
+      <div class="hud-grip">x02210</div>
+      <div class="hud-next">NEXT -> F MAJ</div>
+    </div>
+    <div class="hud-card" data-bar="3">
+      <div class="hud-bar-title">BAR 4 · IV</div>
+      <div class="hud-chord">F MAJ</div>
+      <div class="hud-grip">133211</div>
+      <div class="hud-next">NEXT -> C MAJ</div>
+    </div>
+  </section>
+  <section class="fretboard-container">
+    <div class="fretboard-controls">
+      <div class="pill-group">
+        <div class="pill active" onclick="jumpZone(0,4)">Open (0-4)</div>
+        <div class="pill" onclick="jumpZone(5,9)">Mid (5-9)</div>
+        <div class="pill" onclick="jumpZone(10,15)">High (10-15)</div>
+      </div>
+      <div class="pill-group">
+        <div class="pill active" id="btnDensity" onclick="toggleDensity()">Clean Shape</div>
+        <div class="pill" id="btnFocus" onclick="toggleFocus()">Focus Mode</div>
+      </div>
+    </div>
+    <div class="fretboard-scroll-wrapper" id="fretScroll">
+      <div class="fretboard-grid" id="fretboardGrid">
+        <div class="string-labels" id="stringLabels">
+          <div>e</div><div>B</div><div>G</div><div>D</div><div>A</div><div>E</div>
+        </div>
+      </div>
+    </div>
+    <div class="scrubber-container">
+      <label>SWIPE NECK SCRUBBER</label>
+      <input type="range" class="scrubber" id="neckScrubber" min="0" max="100" value="0">
+    </div>
+  </section>
+  <main class="main-grid">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Multi-Style Solo Builder</div>
+      </div>
+      <label style="font-size:0.75rem; color:var(--text-dim);">ARTIST STYLE</label>
+      <select class="select-box" id="artistStyle">
+        <option>Melodic Vocal Gilmour</option>
+        <option>R&B Chord + Fills Hendrix/Mayer</option>
+        <option>Blues Call & Response BB/Clapton</option>
+        <option>Neo-Soul 7th/9th Flow</option>
+        <option>Indie High-Pedal Hook</option>
+      </select>
+      <label style="font-size:0.75rem; color:var(--text-dim);">STORY ARC</label>
+      <select class="select-box" id="storyArc">
+        <option>Call & Response</option>
+        <option>Single Pocket Box</option>
+        <option>Neck Climber</option>
+        <option>Hybrid Chord + Fill</option>
+      </select>
+      <div class="storyboard-grid">
+        <div class="lick-card">
+          <h5>Bar 1 Lick</h5>
+          <div>C Root Vocal Bend</div>
+          <div class="lick-actions">
+            <button class="btn" onclick="swapLick(1)">Swap</button>
+            <button class="btn" onclick="hearLick(1)">Hear</button>
+          </div>
+        </div>
+        <div class="lick-card">
+          <h5>Bar 2 Lick</h5>
+          <div>G Double Stop Slide</div>
+          <div class="lick-actions">
+            <button class="btn" onclick="swapLick(2)">Swap</button>
+            <button class="btn" onclick="hearLick(2)">Hear</button>
+          </div>
+        </div>
+        <div class="lick-card">
+          <h5>Bar 3 Lick</h5>
+          <div>Am Pentatonic Arp</div>
+          <div class="lick-actions">
+            <button class="btn" onclick="swapLick(3)">Swap</button>
+            <button class="btn" onclick="hearLick(3)">Hear</button>
+          </div>
+        </div>
+        <div class="lick-card">
+          <h5>Bar 4 Lick</h5>
+          <div>F Hammer-On Pocket Fill</div>
+          <div class="lick-actions">
+            <button class="btn" onclick="swapLick(4)">Swap</button>
+            <button class="btn" onclick="hearLick(4)">Hear</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">3-Zone Neck Climber & Trainer</div>
+      </div>
+      <div class="zone-pills">
+        <div class="zone-pill active">Zone 1: Open (0-4)</div>
+        <div class="zone-pill">Zone 2: Mid (5-8)</div>
+        <div class="zone-pill">Zone 3: High (9-13)</div>
+      </div>
+      <div style="background:#0A0C10; border:1px solid #1E2432; border-radius:6px; padding:12px; margin-bottom:10px;">
+        <div style="font-size:0.8rem; font-weight:bold; color:var(--gold);">2-Chord Auto-Climb Loop</div>
+        <div style="font-size:0.75rem; color:var(--text-dim); margin-top:4px;">
+          Reachable Pinky/Index Pocket Fills (Beats 3-4)<br>
+          Target: <span style="color:var(--teal); font-weight:bold;">NEXT 3RD / NEXT R</span>
+        </div>
+      </div>
+      <button class="btn btn-gold" style="width:100%;" id="btnClimbLoop">Start Auto-Climb Loop</button>
+    </div>
+  </main>
+  <nav class="bottom-nav">
+    <button class="nav-tab active">Reference</button>
+    <button class="nav-tab">Explore</button>
+    <button class="nav-tab">Voicings</button>
+    <button class="nav-tab">Phrasing</button>
+    <button class="nav-tab">Compare</button>
+  </nav>
+  <script>
+    const stringsTab = ['e', 'B', 'G', 'D', 'A', 'E'];
+    const stringsLap = ['E', 'A', 'D', 'G', 'B', 'e'];
+    let currentPerspective = 'tab';
+    let isCleanShape = true;
+    let isPlaying = false;
+    let playInterval = null;
+    let currentBar = 0;
+    const notesData = [
+      { fret: 0, notes: { 'e': 'E', 'B': 'B', 'G': 'G', 'D': 'D', 'A': 'A', 'E': 'E' } },
+      { fret: 1, notes: { 'B': 'C', 'e': 'F' } },
+      { fret: 2, notes: { 'G': 'A', 'D': 'E', 'A': 'B' } },
+      { fret: 3, notes: { 'A': 'C', 'E': 'G' } },
+      { fret: 5, notes: { 'e': 'A', 'B': 'E', 'G': 'C', 'D': 'G' } },
+      { fret: 8, notes: { 'e': 'C', 'B': 'G', 'E': 'C' } },
+      { fret: 10, notes: { 'D': 'C', 'A': 'G' } },
+      { fret: 12, notes: { 'e': 'E', 'B': 'B', 'G': 'G', 'D': 'D', 'A': 'A', 'E': 'E' } },
+      { fret: 13, notes: { 'B': 'C' } },
+      { fret: 15, notes: { 'A': 'C', 'E': 'G' } }
+    ];
+    function renderFretboard() {
+      const grid = document.getElementById('fretboardGrid');
+      const stringOrder = currentPerspective === 'tab' ? stringsTab : stringsLap;
+      const labelsDiv = document.getElementById('stringLabels');
+      labelsDiv.innerHTML = stringOrder.map(s => `<div>${s}</div>`).join('');
+      grid.innerHTML = '';
+      grid.appendChild(labelsDiv);
+      for (let f = 0; f <= 15; f++) {
+        const fretCol = document.createElement('div');
+        fretCol.className = 'fret-column' + (f === 0 ? ' nut' : '');
+        const fretNum = document.createElement('div');
+        fretNum.className = 'fret-number';
+        fretNum.innerText = f;
+        fretCol.appendChild(fretNum);
+        const fretNotes = notesData.find(n => n.fret === f);
+        stringOrder.forEach(stringName => {
+          const stringLine = document.createElement('div');
+          stringLine.className = 'string-line';
+          if (fretNotes && fretNotes.notes[stringName]) {
+            const noteName = fretNotes.notes[stringName];
+            const node = document.createElement('div');
+            const isRoot = noteName === 'C';
+            node.className = 'note-node' + (isRoot ? ' root' : '') + (f === 3 || f === 8 ? ' halo' : '');
+            node.innerText = noteName;
+            stringLine.appendChild(node);
+          }
+          fretCol.appendChild(stringLine);
+        });
+        grid.appendChild(fretCol);
+      }
+    }
+    document.getElementById('btnTools').addEventListener('click', () => {
+      document.getElementById('toolsTray').classList.toggle('open');
+    });
+    document.getElementById('btnFlipView').addEventListener('click', (e) => {
+      if (currentPerspective === 'tab') {
+        currentPerspective = 'lap';
+        e.target.innerText = 'View: Lap 6E Top';
+      } else {
+        currentPerspective = 'tab';
+        e.target.innerText = 'View: Tab 1e Top';
+      }
+      renderFretboard();
+    });
+    function toggleDensity() {
+      isCleanShape = !isCleanShape;
+      const btn = document.getElementById('btnDensity');
+      btn.innerText = isCleanShape ? 'Clean Shape' : 'All Notes';
+    }
+    function toggleFocus() {
+      document.body.classList.toggle('focus-mode');
+    }
+    function jumpZone(startFret, endFret) {
+      const scrollWrapper = document.getElementById('fretScroll');
+      const fretWidth = 60;
+      scrollWrapper.scrollTo({ left: startFret * fretWidth, behavior: 'smooth' });
+    }
+    const scrubber = document.getElementById('neckScrubber');
+    scrubber.addEventListener('input', (e) => {
+      const scrollWrapper = document.getElementById('fretScroll');
+      const maxScroll = scrollWrapper.scrollWidth - scrollWrapper.clientWidth;
+      scrollWrapper.scrollLeft = (e.target.value / 100) * maxScroll;
+    });
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playChordTone(freq) {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.8);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.8);
+    }
+    document.getElementById('btnPlay').addEventListener('click', (e) => {
+      isPlaying = !isPlaying;
+      if (isPlaying) {
+        e.target.innerText = 'PAUSE';
+        playInterval = setInterval(() => {
+          const cards = document.querySelectorAll('.hud-card');
+          cards.forEach(c => c.classList.remove('active'));
+          currentBar = (currentBar + 1) % 4;
+          cards[currentBar].classList.add('active');
+          const freqs = [261.63, 392.00, 440.00, 349.23];
+          playChordTone(freqs[currentBar]);
+        }, 1200);
+      } else {
+        e.target.innerText = 'PLAY';
+        clearInterval(playInterval);
+      }
+    });
+    function swapLick(barNum) {
+      alert('Lick for Bar ' + barNum + ' updated');
+    }
+    function hearLick(barNum) {
+      playChordTone(300 + barNum * 50);
+    }
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+      });
+    });
+    renderFretboard();
+  </script>
+</body>
+</html>
